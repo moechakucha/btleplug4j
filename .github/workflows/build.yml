@@ -62,7 +62,14 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y bluez libdbus-1-dev pkg-config
+          sudo apt-get install -y bluez libdbus-1-dev pkg-config build-essential
+
+      - name: Install jextract
+        run: |
+          wget https://download.java.net/java/early_access/jextract/25/2/openjdk-25-jextract+2-4_linux-x64_bin.tar.gz
+          tar -xvf openjdk-25-jextract+2-4_linux-x64_bin.tar.gz
+          
+          echo "$GITHUB_WORKSPACE/jextract-25/bin" >> $GITHUB_PATH
 
       - name: Run vHCI Integration Test
         run: ./gradlew test -PrunTest=true
@@ -80,6 +87,18 @@ jobs:
           java-version: '22'
           distribution: 'temurin'
           cache: 'gradle'
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bluez libdbus-1-dev pkg-config build-essential
+
+      - name: Install jextract
+        run: |
+          wget https://download.java.net/java/early_access/jextract/25/2/openjdk-25-jextract+2-4_linux-x64_bin.tar.gz
+          tar -xvf openjdk-25-jextract+2-4_linux-x64_bin.tar.gz
+
+          echo "$GITHUB_WORKSPACE/jextract-25/bin" >> $GITHUB_PATH
 
       - name: Download Native Artifacts
         uses: actions/download-artifact@v4

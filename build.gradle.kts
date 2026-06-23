@@ -92,7 +92,6 @@ val cargoPath = findTool("cargo")
 val jextractPath = findTool("jextract")
 
 tasks.register<Exec>("cargoBuild") {
-    onlyIf { !isCi }
     workingDir = rustProjectDir
     commandLine(cargoPath, "build", "--release")
     inputs.dir(rustProjectDir.resolve("src"))
@@ -101,7 +100,6 @@ tasks.register<Exec>("cargoBuild") {
 }
 
 tasks.register<Exec>("generateBindings") {
-    onlyIf { !isCi }
     dependsOn("cargoBuild")
     val headerFile = rustProjectDir.resolve("bindings.h")
 
