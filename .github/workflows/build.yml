@@ -11,7 +11,7 @@ jobs:
     name: Build Native (${{ matrix.target.os }}-${{ matrix.target.arch }})
     runs-on: ${{ matrix.target.runner }}
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         target:
           - { os: macos, arch: aarch64, runner: macos-14, ext: dylib, prefix: lib }
@@ -24,6 +24,12 @@ jobs:
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bluez libdbus-1-dev pkg-config
 
       - name: Build Rust Library
         working-directory: ffi
@@ -53,10 +59,10 @@ jobs:
           java-version: '22'
           distribution: 'temurin'
 
-      - name: Install BlueZ Tools
+      - name: Install Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y bluez
+          sudo apt-get install -y bluez libdbus-1-dev pkg-config
 
       - name: Run vHCI Integration Test
         run: ./gradlew test -PrunTest=true
