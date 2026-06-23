@@ -8,15 +8,8 @@ on:
 
 jobs:
   build:
-    name: Build for (${{ matrix.target.os }}-${{ matrix.target.arch }})
-    runs-on: ${{ matrix.target.runner }}
-    strategy:
-      fail-fast: true
-      matrix:
-        target:
-          - { os: macos, arch: aarch64, runner: macos-14, jextract_url: "https://download.java.net/java/early_access/jextract/22/6/openjdk-22-jextract+6-47_macos-aarch64_bin.tar.gz" }
-          - { os: windows, arch: x86_64, runner: windows-latest, jextract_url: "https://download.java.net/java/early_access/jextract/22/6/openjdk-22-jextract+6-47_windows-x64_bin.tar.gz" }
-          - { os: linux, arch: x86_64, runner: ubuntu-latest, jextract_url: "https://download.java.net/java/early_access/jextract/22/6/openjdk-22-jextract+6-47_linux-x64_bin.tar.gz" }
+    name: Build
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
@@ -31,7 +24,6 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Install Dependencies
-        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y bluez libdbus-1-dev
@@ -40,29 +32,21 @@ jobs:
         shell: bash
         run: |
           mkdir -p $HOME/.jextract
-          curl -L "${{ matrix.target.jextract_url }}" -o jextract_bundle.tar.gz || curl -L "${{ matrix.target.jextract_url }}" -o jextract_bundle.zip
-          if [ -f jextract_bundle.tar.gz ]; then
-            tar -xzf jextract_bundle.tar.gz -C $HOME/.jextract --strip-components=1
-          else
-            unzip jextract_bundle.zip -d $HOME/.jextract
-            mv $HOME/.jextract/jextract-22/* $HOME/.jextract/ 2>/dev/null || true
-          fi
+          curl -L "https://download.java.net/java/early_access/jextract/22/6/openjdk-22-jextract+6-47_linux-x64_bin.tar.gz" -o jextract_bundle.tar.gz
+          tar -xzf jextract_bundle.tar.gz -C $HOME/.jextract --strip-components=1
           echo "$HOME/.jextract/bin" >> $GITHUB_PATH
 
-      - name: Build Platform Native and Bindings
-        run: ./gradlew compileJava --no-daemon
-
       - name: Run Build and Platform Package
-        run: ./gradlew build jar -Pci=true -x test --no-daemon
+        run: ./gradlew build -Pci=true -x test --no-daemon
 
       - name: Upload Platform Jar Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: btleplug4j-${{ matrix.target.os }}-${{ matrix.target.arch }}
+          name: btleplug4j
           path: build/libs/*.jar
 
   test:
-    name: Test on Linux
+    name: Test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

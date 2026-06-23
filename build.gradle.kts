@@ -28,6 +28,24 @@ val jextractOutputDir = layout.buildDirectory.dir("generated/sources/jextract/ma
 val generatedNativesDir = layout.buildDirectory.dir("generated/natives")
 val isCi = project.hasProperty("ci")
 
+val targetPlatforms = listOf(
+    PlatformInfo("macos", "aarch64", "aarch64-apple-darwin", "dylib", "lib"),
+    PlatformInfo("macos", "x86_64", "x86_64-apple-darwin", "dylib", "lib"),
+    PlatformInfo("windows", "x86_64", "x86_64-pc-windows-gnu", "dll", ""),
+    PlatformInfo("linux", "x86_64", "x86_64-unknown-linux-gnu", "so", "lib")
+)
+
+data class PlatformInfo(
+    val os: String,
+    val arch: String,
+    val triple: String,
+    val ext: String,
+    val prefix: String
+) {
+    val name = "$os-$arch"
+    val libName = "${prefix}btleplug4j_ffi.$ext"
+}
+
 val runTest = project.hasProperty("runTest")
 
 tasks.test {
@@ -99,24 +117,68 @@ tasks.register<Exec>("cargoBuild") {
     outputs.dir(rustProjectDir.resolve("target/release"))
 }
 
-tasks.register<Exec>("generateBindings") {
+val dumpSymbolsFile = layout.buildDirectory.file("tmp/jextract/all_symbols.txt")
+val filteredSymbolsFile = layout.buildDirectory.file("tmp/jextract/filtered_symbols.txt")
+
+tasks.register<Exec>("dumpAllSymbols") {
     dependsOn("cargoBuild")
     val headerFile = rustProjectDir.resolve("bindings.h")
 
     doFirst {
-        jextractOutputDir.mkdirs()
-        if (!headerFile.exists()) {
-            throw GradleException("Cannot find bindings.h. Did Cargo build fail?")
-        }
+        dumpSymbolsFile.get().asFile.parentFile.mkdirs()
     }
 
     commandLine(
         jextractPath,
-        "--output", jextractOutputDir.absolutePath,
-        "--header-class-name", "BtleplugFfi",
-        "-t", "moe.prwk.btleplug4j.ffi",
+        "--dump-includes", dumpSymbolsFile.get().asFile.absolutePath,
         headerFile.absolutePath
     )
+
+    outputs.file(dumpSymbolsFile)
+}
+
+tasks.register<Exec>("generateBindings") {
+    dependsOn("cargoBuild", "dumpAllSymbols")
+    val headerFile = rustProjectDir.resolve("bindings.h")
+
+    doFirst {
+        jextractOutputDir.mkdirs()
+
+        if (!headerFile.exists()) {
+            throw GradleException("Cannot find bindings.h. Did Cargo build fail?")
+        }
+
+        val rawSymbols = dumpSymbolsFile.get().asFile.readLines()
+        val filteredSymbols = mutableListOf<String>()
+
+        rawSymbols.forEach { line ->
+            val trimmed = line.trim()
+            if (trimmed.startsWith("--include-function ble_") ||
+                trimmed.startsWith("--include-struct Ble") ||
+                trimmed.startsWith("--include-typedef NotifyCallback")) {
+
+                val parts = trimmed.split(" ", limit = 2)
+                if (parts.size == 2) {
+                    val key = parts[0].trim()
+                    val value = parts[1].trim().split(" ", limit = 2)[0]
+                    filteredSymbols.add("$key $value")
+                }
+            }
+        }
+
+        filteredSymbolsFile.get().asFile.writeText(filteredSymbols.joinToString("\n"))
+    }
+
+    val cmd = mutableListOf(
+        jextractPath,
+        "--output", jextractOutputDir.absolutePath,
+        "--header-class-name", "BtleplugFfi",
+        "-t", "moe.prwk.btleplug4j.ffi"
+    )
+    cmd.add("@${filteredSymbolsFile.get().asFile.absolutePath}")
+    cmd.add(headerFile.absolutePath)
+
+    commandLine(cmd)
     outputs.dir(jextractOutputDir)
 }
 
@@ -133,36 +195,35 @@ tasks.named("compileJava") {
     dependsOn("generateBindings")
 }
 
-val osNameStr = when {
-    currentOs.isMacOsX -> "macos"
-    currentOs.isWindows -> "windows"
-    currentOs.isLinux -> "linux"
-    else -> "unknown"
-}
-val archStr = System.getProperty("os.arch").let {
-    if (it == "arm64" || it == "aarch64") "aarch64" else "x86_64"
-}
-val currentPlatform = "$osNameStr-$archStr"
+targetPlatforms.forEach { platform ->
+    val compileTaskName = "cargoZigbuild_${platform.os}_${platform.arch}"
+    val copyTaskName = "copyNative_${platform.os}_${platform.arch}"
 
-tasks.jar {
-    archiveClassifier.set(currentPlatform)
-}
+    val compileTask = tasks.register<Exec>(compileTaskName) {
+        workingDir = rustProjectDir
+        commandLine(cargoPath, "zigbuild", "--release", "--target", platform.triple)
+        inputs.dir(rustProjectDir.resolve("src"))
+        inputs.file(rustProjectDir.resolve("Cargo.toml"))
+        outputs.dir(rustProjectDir.resolve("target/${platform.triple}/release"))
+    }
 
-val ext = when {
-    currentOs.isMacOsX -> "dylib"
-    currentOs.isWindows -> "dll"
-    else -> "so"
-}
-val prefix = if (currentOs.isWindows) "" else "lib"
-val libName = "${prefix}btleplug4j_ffi.$ext"
-
-tasks.register<Copy>("copyNativeLibs") {
-    onlyIf { !isCi }
-    dependsOn("cargoBuild")
-    from(rustProjectDir.resolve("target/release/$libName"))
-    into(generatedNativesDir.get().dir("natives/$currentPlatform"))
+    tasks.register<Copy>(copyTaskName) {
+        dependsOn(compileTask)
+        from(rustProjectDir.resolve("target/${platform.triple}/release/${platform.libName}"))
+        into(generatedNativesDir.get().dir("natives/${platform.name}"))
+    }
 }
 
-tasks.named("processResources") {
-    dependsOn("copyNativeLibs")
+tasks.register("buildAllPlatformsNatives") {
+    group = "build"
+    dependsOn("compileJava")
+
+    targetPlatforms.forEach { platform ->
+        val copyTaskName = "copyNative_${platform.os}_${platform.arch}"
+        dependsOn(copyTaskName)
+    }
+}
+
+tasks.named("jar") {
+    dependsOn("buildAllPlatformsNatives")
 }
