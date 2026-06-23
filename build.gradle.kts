@@ -144,6 +144,10 @@ val archStr = System.getProperty("os.arch").let {
 }
 val currentPlatform = "$osNameStr-$archStr"
 
+tasks.jar {
+    archiveClassifier.set(currentPlatform)
+}
+
 val ext = when {
     currentOs.isMacOsX -> "dylib"
     currentOs.isWindows -> "dll"

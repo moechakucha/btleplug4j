@@ -14,10 +14,9 @@ jobs:
       fail-fast: true
       matrix:
         target:
-          - { os: macos, arch: aarch64, runner: macos-14, ext: dylib, prefix: lib }
-          # - { os: macos, arch: x86_64, runner: macos-13, ext: dylib, prefix: lib }
-          - { os: windows, arch: x86_64, runner: windows-latest, ext: dll, prefix: "" }
-          - { os: linux, arch: x86_64, runner: ubuntu-latest, ext: so, prefix: lib }
+          - { os: macos, arch: aarch64, runner: macos-14, jextract_url: "https://download.java.net/java/early_access/jextract/25/2/openjdk-25-jextract+2-4_macos-aarch64_bin.tar.gz" }
+          - { os: windows, arch: x86_64, runner: windows-latest, jextract_url: "https://download.java.net/java/early_access/jextract/25/2/openjdk-25-jextract+2-4_windows-x64_bin.tar.gz" }
+          - { os: linux, arch: x86_64, runner: ubuntu-latest, jextract_url: "https://download.java.net/java/early_access/jextract/25/2/openjdk-25-jextract+2-4_linux-x64_bin.tar.gz" }
 
     steps:
       - uses: actions/checkout@v4
@@ -29,24 +28,32 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y bluez libdbus-1-dev pkg-config
+          sudo apt-get install -y bluez libdbus-1-dev
 
-      - name: Build Rust Library
-        working-directory: ffi
-        run: cargo build --release
-
-      - name: Prepare Artifact Directory
+      - name: Install jextract
         shell: bash
         run: |
-          mkdir -p natives/${{ matrix.target.os }}-${{ matrix.target.arch }}
-          cp ffi/target/release/${{ matrix.target.prefix }}btleplug4j_ffi.${{ matrix.target.ext }} \
-             natives/${{ matrix.target.os }}-${{ matrix.target.arch }}/
+          mkdir -p $HOME/.jextract
+          curl -L "${{ matrix.target.jextract_url }}" -o jextract_bundle.tar.gz || curl -L "${{ matrix.target.jextract_url }}" -o jextract_bundle.zip
+          if [ -f jextract_bundle.tar.gz ]; then
+            tar -xzf jextract_bundle.tar.gz -C $HOME/.jextract --strip-components=1
+          else
+            unzip jextract_bundle.zip -d $HOME/.jextract
+            mv $HOME/.jextract/jextract-25/* $HOME/.jextract/ 2>/dev/null || true
+          fi
+          echo "$HOME/.jextract/bin" >> $GITHUB_PATH
 
-      - name: Upload Native Artifact
+      - name: Build Platform Native and Bindings
+        run: ./gradlew compileJava --no-daemon
+
+      - name: Run Build and Platform Package
+        run: ./gradlew build jar -Pci=true -x test --no-daemon
+
+      - name: Upload Platform Jar Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: native-${{ matrix.target.os }}-${{ matrix.target.arch }}
-          path: natives/
+          name: btleplug4j-${{ matrix.target.os }}-${{ matrix.target.arch }}
+          path: build/libs/*.jar
 
   test:
     runs-on: ubuntu-latest
@@ -62,7 +69,7 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y bluez libdbus-1-dev pkg-config build-essential
+          sudo apt-get install -y bluez libdbus-1-dev
 
       - name: Install jextract
         run: |
@@ -73,48 +80,3 @@ jobs:
 
       - name: Run vHCI Integration Test
         run: ./gradlew test -PrunTest=true
-
-  build-java:
-    name: Assemble Fat JAR
-    needs: build-native
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Java 22
-        uses: actions/setup-java@v4
-        with:
-          java-version: '22'
-          distribution: 'temurin'
-          cache: 'gradle'
-
-      - name: Install Dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y bluez libdbus-1-dev pkg-config build-essential
-
-      - name: Install jextract
-        run: |
-          wget https://download.java.net/java/early_access/jextract/25/2/openjdk-25-jextract+2-4_linux-x64_bin.tar.gz
-          tar -xvf openjdk-25-jextract+2-4_linux-x64_bin.tar.gz
-
-          echo "$GITHUB_WORKSPACE/jextract-25/bin" >> $GITHUB_PATH
-
-      - name: Download Native Artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: src/main/resources/natives
-          pattern: native-*
-          merge-multiple: true
-
-      - name: Verify Native Libraries Layout
-        run: tree src/main/resources/natives
-
-      - name: Build Fat JAR
-        run: ./gradlew build jar -Pci=true --no-daemon
-
-      - name: Upload Final JAR
-        uses: actions/upload-artifact@v4
-        with:
-          name: btleplug4j
-          path: build/libs/*.jar
