@@ -1,0 +1,1 @@
+rootProject.name = "btleplug4j"
