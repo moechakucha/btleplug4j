@@ -1,0 +1,11 @@
+image: alpine/edge
+secrets:
+  - c4535cec-7c9b-4ca6-a8a9-9425e175d6da
+sources:
+  - git+ssh://git@git.sr.ht/~flamarine/btleplug4j
+tasks:
+  - mirror-to-github: |
+      cd ~/btleplug4j
+      ssh-keyscan -t rsa github.com >> ~/.ssh/known_hosts
+      git remote add github git@github.com:moechakucha/btleplug4j.git
+      git push --mirror github
