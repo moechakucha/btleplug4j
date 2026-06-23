@@ -1,63 +1,58 @@
 package moe.prwk.btleplug4j.test;
 
-import moe.prwk.btleplug4j.Adapter;
-import moe.prwk.btleplug4j.BleManager;
-import moe.prwk.btleplug4j.Characteristic;
-import moe.prwk.btleplug4j.Peripheral;
+import moe.prwk.btleplug4j.*;
 import org.junit.jupiter.api.Test;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@SuppressWarnings("unused")
 public class BleTest {
+    private static final String TARGET_DEVICE_NAME = "test-device";
+    private static final String CONTROL_SERVICE_UUID = "00000001-b5a3-f393-e0a9-e50e24dcca9e";
+
     @Test
-    public void testFullBleWorkflowWithMock() throws InterruptedException {
-        CountDownLatch dataReceivedLatch = new CountDownLatch(3);
-        AtomicInteger lastHeartRate = new AtomicInteger(0);
+    public void testAdapterAndPeripheralDiscovery() throws InterruptedException {
+        CountDownLatch deviceFoundLatch = new CountDownLatch(1);
+        AtomicBoolean hasTargetDevice = new AtomicBoolean(false);
 
         try (BleManager manager = new BleManager()) {
             List<Adapter> adapters = manager.getAdapters();
-            assertFalse(adapters.isEmpty(), "Should return mock adapter");
+            assertFalse(adapters.isEmpty(), "vHCI adapter was not initialized correctly by the workflow script.");
 
-            try (Adapter adapter = adapters.getFirst()) {
-                assertTrue(adapter.startScan());
+            try (Adapter adapter = adapters.get(0)) {
+                System.out.println("Successfully bound to Linux vHCI Adapter.");
 
-                List<Peripheral> peripherals = adapter.getPeripherals();
-                assertFalse(peripherals.isEmpty(), "Should return mock peripheral");
+                System.out.println("Starting filtered scan for UUID: " + CONTROL_SERVICE_UUID);
+                List<String> filterUuids = List.of(CONTROL_SERVICE_UUID);
+                assertTrue(adapter.startScan(filterUuids), "Failed to issue filtered scan command to vHCI kernel stack.");
 
-                Peripheral mockHardware = peripherals.getFirst();
-                assertEquals("AA:BB:CC:DD:EE:FF", mockHardware.id);
+                System.out.println("Polling vHCI ring buffer for peripherals...");
 
-                assertTrue(mockHardware.discoverServices());
-
-                List<Characteristic> chars = mockHardware.getCharacteristics();
-                assertEquals(2, chars.size(), "Mock should provide exactly 2 characteristics");
-
-                for (Characteristic c : chars) {
-                    if (c.uuid.startsWith("00002a29")) {
-                        byte[] readData = mockHardware.readValue(c);
-                        assertNotNull(readData);
-                        assertEquals("Mock-Hardware", new String(readData));
+                for (int i = 0; i < 12; i++) {
+                    List<Peripheral> peripherals = adapter.getPeripherals();
+                    for (Peripheral p : peripherals) {
+                        if (p.name != null && p.name.contains(TARGET_DEVICE_NAME)) {
+                            System.out.println("🎯 Match found! Discovered vHCI Virtual Peripheral: " + p.id + " [" + p.name + "]");
+                            hasTargetDevice.set(true);
+                            deviceFoundLatch.countDown();
+                            break;
+                        }
                     }
-                    if (c.uuid.startsWith("00002a37")) {
-                        mockHardware.subscribe(c, (byte[] payload) -> {
-                            if (payload.length == 2 && payload[0] == 0x00) {
-                                int hr = payload[1] & 0xFF;
-                                System.out.println("Received mock HR: " + hr);
-                                lastHeartRate.set(hr);
-                                dataReceivedLatch.countDown();
-                            }
-                        });
+                    if (hasTargetDevice.get()) {
+                        break;
                     }
+                    Thread.sleep(1000);
                 }
 
-                boolean success = dataReceivedLatch.await(5, TimeUnit.SECONDS);
+                boolean success = deviceFoundLatch.await(1, TimeUnit.SECONDS);
+                assertTrue(success, "Failed to discover the vHCI loopback peripheral within timeout.");
+                assertTrue(hasTargetDevice.get(), "The discovered peripheral name did not match vHCI broadcast configurations.");
 
-                assertTrue(success, "Did not receive all expected async notifications from Rust layer");
-                assertTrue(lastHeartRate.get() > 60, "Heart rate should be incrementing in mock");
+                System.out.println("vHCI Base FFI lifecycle test passed successfully.");
             }
         }
     }

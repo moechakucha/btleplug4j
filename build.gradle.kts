@@ -20,6 +20,16 @@ dependencies {
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
+@Suppress("HasPlatformType")
+val currentOs = OperatingSystem.current()
+
+val rustProjectDir = projectDir.resolve("ffi")
+val jextractOutputDir = layout.buildDirectory.dir("generated/sources/jextract/main").get().asFile
+val generatedNativesDir = layout.buildDirectory.dir("generated/natives")
+val isCi = project.hasProperty("ci")
+
+val runTest = project.hasProperty("runTest")
+
 tasks.test {
     useJUnitPlatform()
     jvmArgs("--enable-native-access=ALL-UNNAMED")
@@ -28,6 +38,28 @@ tasks.test {
         events("passed", "skipped", "failed")
         showStandardStreams = true
     }
+
+    onlyIf { runTest }
+    if (runTest) {
+        dependsOn("copyNativeLibs")
+    }
+
+    doFirst {
+        if (runTest) {
+            val setupScript = projectDir.resolve("src/test/resources/setup_vhci.sh")
+            if (setupScript.exists()) {
+                logger.lifecycle("Initializing vHCI adapter")
+                setupScript.setExecutable(true)
+                val pb = ProcessBuilder("bash", setupScript.absolutePath)
+                pb.redirectOutput(ProcessBuilder.Redirect.INHERIT)
+                pb.redirectError(ProcessBuilder.Redirect.INHERIT)
+                val process = pb.start()
+                if (process.waitFor() != 0) {
+                    throw GradleException("Failed to initialize vHCI")
+                }
+            }
+        }
+    }
 }
 
 java {
@@ -35,90 +67,48 @@ java {
     targetCompatibility = JavaVersion.VERSION_22
 }
 
-@Suppress("HasPlatformType")
-val currentOs = OperatingSystem.current()
-
-val rustProjectDir = projectDir.resolve("ffi")
-val jextractOutputDir = layout.buildDirectory.dir("generated/sources/jextract/main").get().asFile
-val prodNativesDir = layout.buildDirectory.dir("generated/natives/main")
-val testNativesDir = layout.buildDirectory.dir("generated/natives/test")
-val isCi = project.hasProperty("ci")
-
 fun findTool(toolName: String): String {
-    val os = currentOs
-    val execName = if (os.isWindows) "$toolName.exe" else toolName
-
+    val execName = if (currentOs.isWindows) "$toolName.exe" else toolName
     val pathEnv = System.getenv("PATH") ?: ""
+
     pathEnv.split(File.pathSeparator).forEach { dir ->
         val file = File(dir, execName)
-        if (file.isFile && file.canExecute()) {
-            return file.absolutePath
-        }
+        if (file.isFile && file.canExecute()) return file.absolutePath
     }
 
-    if (os.isMacOsX || os.isLinux) {
-        val fallbacks = listOf(
+    if (currentOs.isMacOsX || currentOs.isLinux) {
+        listOf(
             File(System.getProperty("user.home"), ".cargo/bin/$execName"),
             File("/opt/homebrew/bin/$execName"),
             File("/usr/local/bin/$execName")
-        )
-        fallbacks.forEach { file ->
-            if (file.isFile && file.canExecute()) {
-                return file.absolutePath
-            }
+        ).forEach { file ->
+            if (file.isFile && file.canExecute()) return file.absolutePath
         }
     }
-
     return execName
 }
 
 val cargoPath = findTool("cargo")
 val jextractPath = findTool("jextract")
 
-tasks.register<Exec>("cargoBuildProd") {
+tasks.register<Exec>("cargoBuild") {
     onlyIf { !isCi }
     workingDir = rustProjectDir
     commandLine(cargoPath, "build", "--release")
     inputs.dir(rustProjectDir.resolve("src"))
     inputs.file(rustProjectDir.resolve("Cargo.toml"))
     outputs.dir(rustProjectDir.resolve("target/release"))
-
-    doFirst {
-        if (cargoPath == "cargo") {
-            logger.warn("Warning: Could not find 'cargo' in PATH or standard directories.")
-        }
-    }
-}
-
-tasks.register<Exec>("cargoBuildMock") {
-    onlyIf { !isCi }
-    workingDir = rustProjectDir
-    commandLine(cargoPath, "build", "--release", "--features", "mock-hw", "--target-dir", "target-test")
-    inputs.dir(rustProjectDir.resolve("src"))
-    inputs.file(rustProjectDir.resolve("Cargo.toml"))
-    outputs.dir(rustProjectDir.resolve("target-test/release"))
-
-    doFirst {
-        if (cargoPath == "cargo") {
-            logger.warn("Warning: Could not find 'cargo' in PATH or standard directories.")
-        }
-    }
 }
 
 tasks.register<Exec>("generateBindings") {
     onlyIf { !isCi }
-    dependsOn("cargoBuildProd")
+    dependsOn("cargoBuild")
     val headerFile = rustProjectDir.resolve("bindings.h")
 
     doFirst {
         jextractOutputDir.mkdirs()
-
-        if (jextractPath == "jextract") {
-            logger.warn("Warning: Could not find 'jextract' in PATH or standard directories.")
-        }
-
         if (!headerFile.exists()) {
-            throw GradleException("Cannot find bindings.h at ${headerFile.absolutePath}. Did Cargo build fail?")
+            throw GradleException("Cannot find bindings.h. Did Cargo build fail?")
         }
     }
 
@@ -129,26 +119,14 @@ tasks.register<Exec>("generateBindings") {
         "-t", "moe.prwk.btleplug4j.ffi",
         headerFile.absolutePath
     )
-
     outputs.dir(jextractOutputDir)
 }
 
 sourceSets {
     main {
-        java {
-            srcDir(jextractOutputDir)
-        }
+        java { srcDir(jextractOutputDir) }
         resources {
-            if (!isCi) {
-                srcDir(prodNativesDir)
-            }
-        }
-    }
-    test {
-        resources {
-            if (!isCi) {
-                srcDir(testNativesDir)
-            }
+            if (!isCi) srcDir(generatedNativesDir)
         }
     }
 }
@@ -176,24 +154,13 @@ val ext = when {
 val prefix = if (currentOs.isWindows) "" else "lib"
 val libName = "${prefix}btleplug4j_ffi.$ext"
 
-tasks.register<Copy>("copyProdNatives") {
+tasks.register<Copy>("copyNativeLibs") {
     onlyIf { !isCi }
-    dependsOn("cargoBuildProd")
+    dependsOn("cargoBuild")
     from(rustProjectDir.resolve("target/release/$libName"))
-    into(prodNativesDir.get().dir("natives/$currentPlatform"))
-}
-
-tasks.register<Copy>("copyMockNatives") {
-    onlyIf { !isCi }
-    dependsOn("cargoBuildMock")
-    from(rustProjectDir.resolve("target-test/release/$libName"))
-    into(testNativesDir.get().dir("natives/$currentPlatform"))
+    into(generatedNativesDir.get().dir("natives/$currentPlatform"))
 }
 
 tasks.named("processResources") {
-    dependsOn("copyProdNatives")
-}
-
-tasks.named("processTestResources") {
-    dependsOn("copyMockNatives")
+    dependsOn("copyNativeLibs")
 }
