@@ -31,7 +31,7 @@ val isCi = project.hasProperty("ci")
 val targetPlatforms = listOf(
     PlatformInfo("macos", "aarch64", "aarch64-apple-darwin", "dylib", "lib"),
     PlatformInfo("macos", "x86_64", "x86_64-apple-darwin", "dylib", "lib"),
-    PlatformInfo("windows", "x86_64", "x86_64-pc-windows-gnu", "dll", ""),
+    PlatformInfo("windows", "x86_64", "x86_64-pc-windows-msvc", "dll", ""),
     PlatformInfo("linux", "x86_64", "x86_64-unknown-linux-gnu", "so", "lib")
 )
 
@@ -110,6 +110,7 @@ val cargoPath = findTool("cargo")
 val jextractPath = findTool("jextract", "bat")
 
 tasks.register<Exec>("cargoBuild") {
+    group = "build"
     workingDir = rustProjectDir
     commandLine(cargoPath, "build", "--release")
     inputs.dir(rustProjectDir.resolve("src"))
@@ -196,12 +197,21 @@ tasks.named("compileJava") {
 }
 
 targetPlatforms.forEach { platform ->
-    val compileTaskName = "cargoZigbuild_${platform.os}_${platform.arch}"
+    val compileTaskName = "cargoCrossBuild_${platform.os}_${platform.arch}"
     val copyTaskName = "copyNative_${platform.os}_${platform.arch}"
 
     val compileTask = tasks.register<Exec>(compileTaskName) {
+        group = "build"
         workingDir = rustProjectDir
-        commandLine(cargoPath, "zigbuild", "--release", "--target", platform.triple)
+        val cmd = mutableListOf(cargoPath)
+        if (platform.os == "windows") {
+            cmd.add("xwin")
+            cmd.add("build")
+        } else {
+            cmd.add("zigbuild")
+        }
+        cmd.addAll(arrayOf("--release", "--target", platform.triple))
+        commandLine(cmd)
         inputs.dir(rustProjectDir.resolve("src"))
         inputs.file(rustProjectDir.resolve("Cargo.toml"))
         outputs.dir(rustProjectDir.resolve("target/${platform.triple}/release"))
