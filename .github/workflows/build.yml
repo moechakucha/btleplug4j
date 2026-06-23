@@ -14,9 +14,9 @@ jobs:
       fail-fast: true
       matrix:
         target:
-          - { os: macos, arch: aarch64, runner: macos-14, jextract_url: "https://download.java.net/java/early_access/jextract/25/2/openjdk-25-jextract+2-4_macos-aarch64_bin.tar.gz" }
-          - { os: windows, arch: x86_64, runner: windows-latest, jextract_url: "https://download.java.net/java/early_access/jextract/25/2/openjdk-25-jextract+2-4_windows-x64_bin.tar.gz" }
-          - { os: linux, arch: x86_64, runner: ubuntu-latest, jextract_url: "https://download.java.net/java/early_access/jextract/25/2/openjdk-25-jextract+2-4_linux-x64_bin.tar.gz" }
+          - { os: macos, arch: aarch64, runner: macos-14, jextract_url: "https://download.java.net/java/early_access/jextract/22/6/openjdk-22-jextract+6-47_macos-aarch64_bin.tar.gz" }
+          - { os: windows, arch: x86_64, runner: windows-latest, jextract_url: "https://download.java.net/java/early_access/jextract/22/6/openjdk-22-jextract+6-47_windows-x64_bin.tar.gz" }
+          - { os: linux, arch: x86_64, runner: ubuntu-latest, jextract_url: "https://download.java.net/java/early_access/jextract/22/6/openjdk-22-jextract+6-47_linux-x64_bin.tar.gz" }
 
     steps:
       - uses: actions/checkout@v4
