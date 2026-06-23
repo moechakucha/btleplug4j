@@ -45,7 +45,7 @@ jobs:
             tar -xzf jextract_bundle.tar.gz -C $HOME/.jextract --strip-components=1
           else
             unzip jextract_bundle.zip -d $HOME/.jextract
-            mv $HOME/.jextract/jextract-25/* $HOME/.jextract/ 2>/dev/null || true
+            mv $HOME/.jextract/jextract-22/* $HOME/.jextract/ 2>/dev/null || true
           fi
           echo "$HOME/.jextract/bin" >> $GITHUB_PATH
 
@@ -81,9 +81,9 @@ jobs:
       - name: Install jextract
         run: |
           wget https://download.java.net/java/early_access/jextract/22/6/openjdk-22-jextract+6-47_linux-x64_bin.tar.gz
-          tar -xvf openjdk-25-jextract+2-4_linux-x64_bin.tar.gz
+          tar -xvf openjdk-22-jextract+6-47_linux-x64_bin.tar.gz
           
-          echo "$GITHUB_WORKSPACE/jextract-25/bin" >> $GITHUB_PATH
+          echo "$GITHUB_WORKSPACE/jextract-22/bin" >> $GITHUB_PATH
 
       - name: Run vHCI Integration Test
         run: ./gradlew test -PrunTest=true

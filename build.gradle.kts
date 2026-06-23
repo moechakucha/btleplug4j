@@ -67,8 +67,8 @@ java {
     targetCompatibility = JavaVersion.VERSION_22
 }
 
-fun findTool(toolName: String): String {
-    val execName = if (currentOs.isWindows) "$toolName.exe" else toolName
+fun findTool(toolName: String, extraPrefix: String = "exe"): String {
+    val execName = if (currentOs.isWindows) "$toolName.$extraPrefix" else toolName
     val pathEnv = System.getenv("PATH") ?: ""
 
     pathEnv.split(File.pathSeparator).forEach { dir ->
@@ -89,7 +89,7 @@ fun findTool(toolName: String): String {
 }
 
 val cargoPath = findTool("cargo")
-val jextractPath = findTool("jextract")
+val jextractPath = findTool("jextract", "bat")
 
 tasks.register<Exec>("cargoBuild") {
     workingDir = rustProjectDir
