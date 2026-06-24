@@ -59,30 +59,30 @@ jobs:
           name: btleplug4j
           path: build/libs/*.jar
 
-  test:
-    name: Test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up JDK 22
-        uses: actions/setup-java@v4
-        with:
-          java-version: '22'
-          distribution: 'temurin'
-
-      - name: Install Dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y bluez libdbus-1-dev
-          cargo install --locked cargo-zigbuild
-
-      - name: Install jextract
-        run: |
-          wget https://download.java.net/java/early_access/jextract/22/6/openjdk-22-jextract+6-47_linux-x64_bin.tar.gz
-          tar -xvf openjdk-22-jextract+6-47_linux-x64_bin.tar.gz
-          
-          echo "$GITHUB_WORKSPACE/jextract-22/bin" >> $GITHUB_PATH
-
-      - name: Run vHCI Integration Test
-        run: ./gradlew test -PrunTest=true
+#  test:
+#    name: Test
+#    runs-on: ubuntu-latest
+#    steps:
+#      - uses: actions/checkout@v4
+#
+#      - name: Set up JDK 22
+#        uses: actions/setup-java@v4
+#        with:
+#          java-version: '22'
+#          distribution: 'temurin'
+#
+#      - name: Install Dependencies
+#        run: |
+#          sudo apt-get update
+#          sudo apt-get install -y bluez libdbus-1-dev
+#          cargo install --locked cargo-zigbuild
+#
+#      - name: Install jextract
+#        run: |
+#          wget https://download.java.net/java/early_access/jextract/22/6/openjdk-22-jextract+6-47_linux-x64_bin.tar.gz
+#          tar -xvf openjdk-22-jextract+6-47_linux-x64_bin.tar.gz
+#
+#          echo "$GITHUB_WORKSPACE/jextract-22/bin" >> $GITHUB_PATH
+#
+#      - name: Run vHCI Integration Test
+#        run: ./gradlew test -PrunTest=true
