@@ -187,7 +187,7 @@ sourceSets {
     main {
         java { srcDir(jextractOutputDir) }
         resources {
-            if (!isCi) srcDir(generatedNativesDir)
+            srcDir(generatedNativesDir)
         }
     }
 }
