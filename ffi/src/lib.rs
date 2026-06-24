@@ -1,9 +1,12 @@
-use btleplug::api::{Central, Characteristic, Descriptor, Manager as _, Peripheral as _, ScanFilter, Service, WriteType};
+use btleplug::api::{
+    Central, Characteristic, Descriptor, Manager as _, Peripheral as _, ScanFilter, Service,
+    WriteType,
+};
 use btleplug::platform::{Adapter, Manager, Peripheral};
-use std::ffi::{c_void, CStr, CString};
+use futures::StreamExt;
+use std::ffi::{CStr, CString, c_void};
 use std::os::raw::c_char;
 use std::slice;
-use futures::StreamExt;
 use tokio::runtime::Runtime;
 use uuid::Uuid;
 
@@ -22,15 +25,16 @@ pub struct BleDescriptorHandle(pub Descriptor);
 pub extern "C" fn ble_ctx_new() -> *mut BleContext {
     let rt = Runtime::new().unwrap();
     let manager = rt.block_on(async { Manager::new().await.unwrap() });
-    Box::into_raw(Box::new(BleContext {
-        rt,
-        manager,
-    }))
+    Box::into_raw(Box::new(BleContext { rt, manager }))
 }
 
 #[unsafe(no_mangle)]
 pub extern "C" fn ble_ctx_free(ctx: *mut BleContext) {
-    if !ctx.is_null() { unsafe { let _ = Box::from_raw(ctx); } }
+    if !ctx.is_null() {
+        unsafe {
+            let _ = Box::from_raw(ctx);
+        }
+    }
 }
 
 #[unsafe(no_mangle)]
@@ -46,7 +50,9 @@ pub extern "C" fn ble_ctx_get_adapters(
             return;
         }
     };
-    let adapters = ctx.rt.block_on(async { ctx.manager.adapters().await.unwrap_or_default() });
+    let adapters = ctx
+        .rt
+        .block_on(async { ctx.manager.adapters().await.unwrap_or_default() });
 
     for adapter in adapters {
         let handle_ptr = Box::into_raw(Box::new(BleAdapterHandle(adapter)));
@@ -57,11 +63,18 @@ pub extern "C" fn ble_ctx_get_adapters(
 
 #[unsafe(no_mangle)]
 pub extern "C" fn ble_adapter_free(adapter: *mut BleAdapterHandle) {
-    if !adapter.is_null() { unsafe { let _ = Box::from_raw(adapter); } }
+    if !adapter.is_null() {
+        unsafe {
+            let _ = Box::from_raw(adapter);
+        }
+    }
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn ble_adapter_start_scan(ctx: *mut BleContext, adapter: *mut BleAdapterHandle) -> bool {
+pub extern "C" fn ble_adapter_start_scan(
+    ctx: *mut BleContext,
+    adapter: *mut BleAdapterHandle,
+) -> bool {
     let (ctx, adapter) = unsafe {
         if !ctx.is_null() && !adapter.is_null() {
             (&mut *ctx, &mut *adapter)
@@ -69,9 +82,8 @@ pub extern "C" fn ble_adapter_start_scan(ctx: *mut BleContext, adapter: *mut Ble
             return false;
         }
     };
-    ctx.rt.block_on(async {
-        adapter.0.start_scan(ScanFilter::default()).await.is_ok()
-    })
+    ctx.rt
+        .block_on(async { adapter.0.start_scan(ScanFilter::default()).await.is_ok() })
 }
 
 #[unsafe(no_mangle)]
@@ -82,7 +94,9 @@ pub extern "C" fn ble_adapter_start_filtered_scan(
     uuid_count: usize,
 ) -> bool {
     let ctx = unsafe {
-        if ctx.is_null() { return false; }
+        if ctx.is_null() {
+            return false;
+        }
         &mut *ctx
     };
 
@@ -112,9 +126,8 @@ pub extern "C" fn ble_adapter_start_filtered_scan(
         }
     };
 
-    ctx.rt.block_on(async {
-        adapter.0.start_scan(filter).await.is_ok()
-    })
+    ctx.rt
+        .block_on(async { adapter.0.start_scan(filter).await.is_ok() })
 }
 
 #[unsafe(no_mangle)]
@@ -131,7 +144,9 @@ pub extern "C" fn ble_adapter_poll_peripherals(
             return;
         }
     };
-    let peripherals = ctx.rt.block_on(async { adapter.0.peripherals().await.unwrap_or_default() });
+    let peripherals = ctx
+        .rt
+        .block_on(async { adapter.0.peripherals().await.unwrap_or_default() });
 
     for peripheral in peripherals {
         ctx.rt.block_on(async {
@@ -149,11 +164,18 @@ pub extern "C" fn ble_adapter_poll_peripherals(
 
 #[unsafe(no_mangle)]
 pub extern "C" fn ble_peripheral_free(peripheral: *mut BlePeripheralHandle) {
-    if !peripheral.is_null() { unsafe { let _ = Box::from_raw(peripheral); } }
+    if !peripheral.is_null() {
+        unsafe {
+            let _ = Box::from_raw(peripheral);
+        }
+    }
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn ble_peripheral_connect(ctx: *mut BleContext, peripheral: *mut BlePeripheralHandle) -> bool {
+pub extern "C" fn ble_peripheral_connect(
+    ctx: *mut BleContext,
+    peripheral: *mut BlePeripheralHandle,
+) -> bool {
     let (ctx, peripheral) = unsafe {
         if !ctx.is_null() && !peripheral.is_null() {
             (&mut *ctx, &mut *peripheral)
@@ -161,7 +183,8 @@ pub extern "C" fn ble_peripheral_connect(ctx: *mut BleContext, peripheral: *mut 
             return false;
         }
     };
-    ctx.rt.block_on(async { peripheral.0.connect().await.is_ok() })
+    ctx.rt
+        .block_on(async { peripheral.0.connect().await.is_ok() })
 }
 
 #[unsafe(no_mangle)]
@@ -176,7 +199,8 @@ pub extern "C" fn ble_peripheral_discover_services(
             return false;
         }
     };
-    ctx.rt.block_on(async { peripheral.0.discover_services().await.is_ok() })
+    ctx.rt
+        .block_on(async { peripheral.0.discover_services().await.is_ok() })
 }
 
 #[unsafe(no_mangle)]
@@ -204,7 +228,11 @@ pub extern "C" fn ble_peripheral_get_services(
 
 #[unsafe(no_mangle)]
 pub extern "C" fn ble_service_free(service_handle: *mut BleServiceHandle) {
-    if !service_handle.is_null() { unsafe { let _ = Box::from_raw(service_handle); } }
+    if !service_handle.is_null() {
+        unsafe {
+            let _ = Box::from_raw(service_handle);
+        }
+    }
 }
 
 #[unsafe(no_mangle)]
@@ -232,7 +260,11 @@ pub extern "C" fn ble_service_get_characteristics(
 
 #[unsafe(no_mangle)]
 pub extern "C" fn ble_characteristic_free(char_handle: *mut BleCharacteristicHandle) {
-    if !char_handle.is_null() { unsafe { let _ = Box::from_raw(char_handle); } }
+    if !char_handle.is_null() {
+        unsafe {
+            let _ = Box::from_raw(char_handle);
+        }
+    }
 }
 
 #[unsafe(no_mangle)]
@@ -258,7 +290,11 @@ pub extern "C" fn ble_characteristic_get_descriptors(
 
 #[unsafe(no_mangle)]
 pub extern "C" fn ble_descriptor_free(desc_handle: *mut BleDescriptorHandle) {
-    if !desc_handle.is_null() { unsafe { let _ = Box::from_raw(desc_handle); } }
+    if !desc_handle.is_null() {
+        unsafe {
+            let _ = Box::from_raw(desc_handle);
+        }
+    }
 }
 
 #[unsafe(no_mangle)]
@@ -270,10 +306,13 @@ pub extern "C" fn ble_peripheral_read(
     buf_cap: usize,
     out_len: *mut usize,
 ) -> bool {
-    let (ctx, peripheral, char_handle)
-        = unsafe { (&mut *ctx, &mut *peripheral, &mut *char_handle) };
+    let (ctx, peripheral, char_handle) =
+        unsafe { (&mut *ctx, &mut *peripheral, &mut *char_handle) };
 
-    if let Ok(data) = ctx.rt.block_on(async { peripheral.0.read(&char_handle.0).await }) {
+    if let Ok(data) = ctx
+        .rt
+        .block_on(async { peripheral.0.read(&char_handle.0).await })
+    {
         let len = data.len().min(buf_cap);
         unsafe {
             std::ptr::copy_nonoverlapping(data.as_ptr(), out_buf, len);
@@ -294,13 +333,21 @@ pub extern "C" fn ble_peripheral_write(
     data_len: usize,
     without_response: bool,
 ) -> bool {
-    let (ctx, peripheral, char_handle)
-        = unsafe { (&mut *ctx, &mut *peripheral, &mut *char_handle) };
+    let (ctx, peripheral, char_handle) =
+        unsafe { (&mut *ctx, &mut *peripheral, &mut *char_handle) };
     let slice = unsafe { slice::from_raw_parts(data, data_len) };
-    let write_type = if without_response { WriteType::WithoutResponse } else { WriteType::WithResponse };
+    let write_type = if without_response {
+        WriteType::WithoutResponse
+    } else {
+        WriteType::WithResponse
+    };
 
     ctx.rt.block_on(async {
-        peripheral.0.write(&char_handle.0, slice, write_type).await.is_ok()
+        peripheral
+            .0
+            .write(&char_handle.0, slice, write_type)
+            .await
+            .is_ok()
     })
 }
 
@@ -314,14 +361,21 @@ pub extern "C" fn ble_peripheral_subscribe(
     callback: NotifyCallback,
     user_data: *mut c_void,
 ) -> bool {
-    let (ctx, peripheral, char_handle)
-        = unsafe { (&mut *ctx, &mut *peripheral, &mut *char_handle) };
+    let (ctx, peripheral, char_handle) =
+        unsafe { (&mut *ctx, &mut *peripheral, &mut *char_handle) };
 
-    if ctx.rt.block_on(async { peripheral.0.subscribe(&char_handle.0).await }).is_err() {
+    if ctx
+        .rt
+        .block_on(async { peripheral.0.subscribe(&char_handle.0).await })
+        .is_err()
+    {
         return false;
     }
 
-    if let Ok(mut stream) = ctx.rt.block_on(async { peripheral.0.notifications().await }) {
+    if let Ok(mut stream) = ctx
+        .rt
+        .block_on(async { peripheral.0.notifications().await })
+    {
         let cb_addr = callback as usize;
         let ud_addr = user_data as usize;
 
@@ -351,9 +405,13 @@ pub extern "C" fn ble_peripheral_read_descriptor(
     buf_cap: usize,
     out_len: *mut usize,
 ) -> bool {
-    let (ctx, peripheral, desc_handle) = unsafe { (&mut *ctx, &mut *peripheral, &mut *desc_handle) };
+    let (ctx, peripheral, desc_handle) =
+        unsafe { (&mut *ctx, &mut *peripheral, &mut *desc_handle) };
 
-    if let Ok(data) = ctx.rt.block_on(async { peripheral.0.read_descriptor(&desc_handle.0).await }) {
+    if let Ok(data) = ctx
+        .rt
+        .block_on(async { peripheral.0.read_descriptor(&desc_handle.0).await })
+    {
         let len = data.len().min(buf_cap);
         unsafe {
             std::ptr::copy_nonoverlapping(data.as_ptr(), out_buf, len);
@@ -373,10 +431,15 @@ pub extern "C" fn ble_peripheral_write_descriptor(
     data: *const u8,
     data_len: usize,
 ) -> bool {
-    let (ctx, peripheral, desc_handle) = unsafe { (&mut *ctx, &mut *peripheral, &mut *desc_handle) };
+    let (ctx, peripheral, desc_handle) =
+        unsafe { (&mut *ctx, &mut *peripheral, &mut *desc_handle) };
     let slice = unsafe { slice::from_raw_parts(data, data_len) };
 
     ctx.rt.block_on(async {
-        peripheral.0.write_descriptor(&desc_handle.0, slice).await.is_ok()
+        peripheral
+            .0
+            .write_descriptor(&desc_handle.0, slice)
+            .await
+            .is_ok()
     })
 }
