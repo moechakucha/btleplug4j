@@ -59,7 +59,7 @@ tasks.test {
 
     onlyIf { runTest }
     if (runTest) {
-        dependsOn("copyNativeLibs")
+        dependsOn("copyNative_linux_x86_64")
     }
 
     doFirst {

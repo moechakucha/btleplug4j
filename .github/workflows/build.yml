@@ -33,6 +33,9 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y bluez libdbus-1-dev
           cargo install --locked cargo-xwin cargo-zigbuild
+          rustup target add aarch64-apple-darwin
+          rustup target add x86_64-apple-darwin
+          rustup target add x86_64-pc-windows-msvc
 
       - name: Install jextract
         shell: bash
