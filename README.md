@@ -53,7 +53,7 @@ try (Peripheral peripheral = targetPeripheral) {
 }
 ```
 
-Write instruction bytes to a characteristic asynchronously or synchronously, and read the characteristic's return data synchronously.
+Write instruction bytes to a characteristic asynchronously or synchronously, and read the characteristic's return data synchronously:
 
 ```java
 byte[] rxData = peripheral.readValue(targetChar);
