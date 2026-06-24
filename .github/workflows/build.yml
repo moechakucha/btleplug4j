@@ -28,7 +28,7 @@ jobs:
         with:
           version: '0.16.0'
 
-      - name: Set up MacOS Cross Compiler
+      - name: Set up macOS Cross Compiler
         uses: Timmmm/setup-osxcross@v2
         with:
           osx-version: "26.1"
@@ -50,10 +50,10 @@ jobs:
           tar -xzf jextract_bundle.tar.gz -C $HOME/.jextract --strip-components=1
           echo "$HOME/.jextract/bin" >> $GITHUB_PATH
 
-      - name: Run Build and Platform Package
+      - name: Run Build
         run: ./gradlew build -Pci=true -x test --no-daemon
 
-      - name: Upload Platform Jar Artifact
+      - name: Upload Jar Artifact
         uses: actions/upload-artifact@v4
         with:
           name: btleplug4j
