@@ -23,7 +23,6 @@ jobs:
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
 
-
       - name: Setup Zig
         uses: goto-bus-stop/setup-zig@v2
         with:
@@ -37,7 +36,7 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y bluez libdbus-1-dev
+          sudo apt-get install -y bluez libdbus-1-dev gcc-mingw-w64-x86-64-win32
           cargo install --locked cargo-xwin cargo-zigbuild
           rustup target add aarch64-apple-darwin
           rustup target add x86_64-apple-darwin

@@ -31,7 +31,7 @@ val isCi = project.hasProperty("ci")
 val targetPlatforms = listOf(
     PlatformInfo("macos", "aarch64", "aarch64-apple-darwin", "dylib", "lib"),
     PlatformInfo("macos", "x86_64", "x86_64-apple-darwin", "dylib", "lib"),
-    PlatformInfo("windows", "x86_64", "x86_64-pc-windows-msvc", "dll", ""),
+    PlatformInfo("windows", "x86_64", "x86_64-pc-windows-gnu", "dll", ""),
     PlatformInfo("linux", "x86_64", "x86_64-unknown-linux-gnu", "so", "lib")
 )
 
