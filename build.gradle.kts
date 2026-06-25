@@ -239,6 +239,14 @@ tasks.named("jar") {
     dependsOn("buildAllPlatformsNatives")
 }
 
+tasks.named("sourcesJar") {
+    dependsOn("buildAllPlatformsNatives")
+}
+
+tasks.named("javadocJar") {
+    dependsOn("buildAllPlatformsNatives")
+}
+
 tasks.named<ProcessResources>("processResources") {
     targetPlatforms.forEach { platform ->
         dependsOn("copyNative_${platform.os}_${platform.arch}")
