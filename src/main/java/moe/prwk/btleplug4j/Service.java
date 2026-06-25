@@ -7,17 +7,31 @@ import java.lang.invoke.*;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * A GATT service. {@link Service}s are groups of
+ * {@link Characteristic}s, which may be standard or
+ * device-specific.
+ */
 public class Service implements AutoCloseable {
     final MemorySegment servicePtr;
     public final String uuid;
     public final boolean isPrimary;
 
+    /**
+     * Not supposed to be called externally in a direct manner.
+     */
     Service(MemorySegment servicePtr, String uuid, boolean isPrimary) {
         this.servicePtr = servicePtr;
         this.uuid = uuid;
         this.isPrimary = isPrimary;
     }
 
+    /**
+     * Get the {@link Characteristic}s of this {@link Service}.
+     *
+     * @return the {@link Characteristic}s of this
+     * {@link Service}
+     */
     public List<Characteristic> getCharacteristics() {
         List<Characteristic> chars = new ArrayList<>();
         try {
@@ -46,6 +60,9 @@ public class Service implements AutoCloseable {
         list.add(new Characteristic(charPtr, uuid, props));
     }
 
+    /**
+     * Release the {@link Service}'s memory.
+     */
     @Override
     public void close() {
         BtleplugFfi.ble_service_free(servicePtr);

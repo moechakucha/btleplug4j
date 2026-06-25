@@ -13,7 +13,7 @@ repositories {
 }
 
 dependencies {
-    implementation("org.jetbrains:annotations:25.0.0")
+    implementation("org.jspecify:jspecify:1.0.0")
 
     testImplementation(platform("org.junit:junit-bom:6.0.0"))
     testImplementation("org.junit.jupiter:junit-jupiter")
@@ -83,6 +83,9 @@ tasks.test {
 java {
     sourceCompatibility = JavaVersion.VERSION_22
     targetCompatibility = JavaVersion.VERSION_22
+
+    withSourcesJar()
+    withJavadocJar()
 }
 
 fun findTool(toolName: String, extraPrefix: String = "exe"): String {
@@ -186,9 +189,7 @@ tasks.register<Exec>("generateBindings") {
 sourceSets {
     main {
         java { srcDir(jextractOutputDir) }
-        resources {
-            srcDir(generatedNativesDir)
-        }
+        resources { srcDir(generatedNativesDir) }
     }
 }
 
@@ -204,11 +205,12 @@ targetPlatforms.forEach { platform ->
         group = "build"
         workingDir = rustProjectDir
         val cmd = mutableListOf(cargoPath)
-        if (platform.os == "windows") {
-            cmd.add("xwin")
-            cmd.add("build")
-        } else {
-            cmd.add("zigbuild")
+        when (platform.os) {
+            "windows" -> {
+                cmd.add("xwin")
+                cmd.add("build")
+            }
+            "linux", "macos" -> cmd.add("zigbuild")
         }
         cmd.addAll(arrayOf("--release", "--target", platform.triple))
         commandLine(cmd)
@@ -229,8 +231,7 @@ tasks.register("buildAllPlatformsNatives") {
     dependsOn("compileJava")
 
     targetPlatforms.forEach { platform ->
-        val copyTaskName = "copyNative_${platform.os}_${platform.arch}"
-        dependsOn(copyTaskName)
+        dependsOn("copyNative_${platform.os}_${platform.arch}")
     }
 }
 

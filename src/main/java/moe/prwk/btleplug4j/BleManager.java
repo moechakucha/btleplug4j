@@ -2,13 +2,17 @@ package moe.prwk.btleplug4j;
 
 import moe.prwk.btleplug4j.ffi.BtleplugFfi;
 import moe.prwk.btleplug4j.util.NativeLoader;
-import org.jetbrains.annotations.NotNull;
 
 import java.lang.foreign.*;
 import java.lang.invoke.*;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * The entry point to the library, providing access to all the
+ * Bluetooth adapters on the system. You can obtain an instance
+ * from {@link BleManager#BleManager()}.
+ */
 public class BleManager implements AutoCloseable {
     static {
         NativeLoader.load();
@@ -17,6 +21,9 @@ public class BleManager implements AutoCloseable {
     final MemorySegment ctxPtr;
     private final Arena sharedArena;
 
+    /**
+     * Constructs a new {@link BleManager} instance.
+     */
     public BleManager() {
         this.sharedArena = Arena.ofShared();
         this.ctxPtr = BtleplugFfi.ble_ctx_new();
@@ -25,7 +32,12 @@ public class BleManager implements AutoCloseable {
         }
     }
 
-    public @NotNull List<Adapter> getAdapters() {
+    /**
+     * Get a list of all Bluetooth adapters on the system.
+     *
+     * @return All Bluetooth adapters on the system
+     */
+    public List<Adapter> getAdapters() {
         List<Adapter> adapters = new ArrayList<>();
         try {
             MethodHandle handle = MethodHandles.lookup().findVirtual(
@@ -52,6 +64,9 @@ public class BleManager implements AutoCloseable {
         list.add(new Adapter(this.ctxPtr, adapterPtr));
     }
 
+    /**
+     * Release the {@link BleManager}'s memory.
+     */
     @Override
     public void close() {
         BtleplugFfi.ble_ctx_free(ctxPtr);

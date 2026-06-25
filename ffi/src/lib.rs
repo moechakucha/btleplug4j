@@ -172,6 +172,22 @@ pub extern "C" fn ble_peripheral_free(peripheral: *mut BlePeripheralHandle) {
 }
 
 #[unsafe(no_mangle)]
+pub extern "C" fn ble_peripheral_is_connected(
+    ctx: *mut BleContext,
+    peripheral: *mut BlePeripheralHandle,
+) -> bool {
+    let (ctx, peripheral) = unsafe {
+        if !ctx.is_null() && !peripheral.is_null() {
+            (&mut *ctx, &mut *peripheral)
+        } else {
+            return false;
+        }
+    };
+    ctx.rt
+        .block_on(async { peripheral.0.is_connected().await.unwrap_or(false) })
+}
+
+#[unsafe(no_mangle)]
 pub extern "C" fn ble_peripheral_connect(
     ctx: *mut BleContext,
     peripheral: *mut BlePeripheralHandle,
@@ -185,6 +201,22 @@ pub extern "C" fn ble_peripheral_connect(
     };
     ctx.rt
         .block_on(async { peripheral.0.connect().await.is_ok() })
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn ble_peripheral_disconnect(
+    ctx: *mut BleContext,
+    peripheral: *mut BlePeripheralHandle,
+) -> bool {
+    let (ctx, peripheral) = unsafe {
+        if !ctx.is_null() && !peripheral.is_null() {
+            (&mut *ctx, &mut *peripheral)
+        } else {
+            return false;
+        }
+    };
+    ctx.rt
+        .block_on(async { peripheral.0.disconnect().await.is_ok() })
 }
 
 #[unsafe(no_mangle)]
@@ -394,6 +426,19 @@ pub extern "C" fn ble_peripheral_subscribe(
     } else {
         false
     }
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn ble_peripheral_unsubscribe(
+    ctx: *mut BleContext,
+    peripheral: *mut BlePeripheralHandle,
+    char_handle: *mut BleCharacteristicHandle,
+) -> bool {
+    let (ctx, peripheral, char_handle) =
+        unsafe { (&mut *ctx, &mut *peripheral, &mut *char_handle) };
+
+    ctx.rt
+        .block_on(async { peripheral.0.unsubscribe(&char_handle.0).await.is_ok() })
 }
 
 #[unsafe(no_mangle)]
