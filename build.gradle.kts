@@ -88,6 +88,50 @@ java {
     withJavadocJar()
 }
 
+tasks.register("syncRustVersion") {
+    group = "versioning"
+
+    val cargoTomlFile = rustProjectDir.resolve("Cargo.toml")
+
+    inputs.property("projectVersion", project.version.toString())
+    outputs.file(cargoTomlFile)
+
+    doLast {
+        if (!cargoTomlFile.exists()) {
+            throw GradleException("Cannot find Cargo.toml at ${cargoTomlFile.absolutePath}")
+        }
+
+        val currentVersion = project.version.toString()
+        val lines = cargoTomlFile.readLines().toMutableList()
+
+        var inPackageBlock = false
+        var versionUpdated = false
+
+        for (i in lines.indices) {
+            val line = lines[i].trim()
+            if (line.startsWith("[package]")) {
+                inPackageBlock = true
+                continue
+            }
+            if (line.startsWith("[")) {
+                inPackageBlock = false
+            }
+
+            if (inPackageBlock && line.startsWith("version")) {
+                lines[i] = "version = \"$currentVersion\""
+                versionUpdated = true
+                break
+            }
+        }
+
+        if (versionUpdated) {
+            cargoTomlFile.writeText(lines.joinToString("\n") + "\n")
+        } else {
+            throw GradleException("Failed to find 'version' field under [package] in Cargo.toml")
+        }
+    }
+}
+
 fun findTool(toolName: String, extraPrefix: String = "exe"): String {
     val execName = if (currentOs.isWindows) "$toolName.$extraPrefix" else toolName
     val pathEnv = System.getenv("PATH") ?: ""
@@ -115,7 +159,9 @@ val jextractPath = findTool("jextract", "bat")
 tasks.register<Exec>("cargoBuild") {
     group = "build"
     workingDir = rustProjectDir
+    dependsOn("syncRustVersion")
     commandLine(cargoPath, "build", "--release")
+
     inputs.dir(rustProjectDir.resolve("src"))
     inputs.file(rustProjectDir.resolve("Cargo.toml"))
     outputs.dir(rustProjectDir.resolve("target/release"))
@@ -204,6 +250,8 @@ targetPlatforms.forEach { platform ->
     val compileTask = tasks.register<Exec>(compileTaskName) {
         group = "build"
         workingDir = rustProjectDir
+        dependsOn("syncRustVersion")
+
         val cmd = mutableListOf(cargoPath)
         when (platform.os) {
             "windows" -> {
@@ -214,6 +262,7 @@ targetPlatforms.forEach { platform ->
         }
         cmd.addAll(arrayOf("--release", "--target", platform.triple))
         commandLine(cmd)
+
         inputs.dir(rustProjectDir.resolve("src"))
         inputs.file(rustProjectDir.resolve("Cargo.toml"))
         outputs.dir(rustProjectDir.resolve("target/${platform.triple}/release"))
