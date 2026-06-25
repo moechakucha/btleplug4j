@@ -1,17 +1,15 @@
 package moe.prwk.btleplug4j;
 
-import moe.prwk.btleplug4j.ffi.BtleplugFfi;
-import moe.prwk.btleplug4j.util.NativeLoader;
-
 import java.lang.foreign.*;
 import java.lang.invoke.*;
 import java.util.ArrayList;
 import java.util.List;
+import moe.prwk.btleplug4j.ffi.BtleplugFfi;
+import moe.prwk.btleplug4j.util.NativeLoader;
 
 /**
- * The entry point to the library, providing access to all the
- * Bluetooth adapters on the system. You can obtain an instance
- * from {@link BleManager#BleManager()}.
+ * The entry point to the library, providing access to all the Bluetooth adapters on the system. You
+ * can obtain an instance from {@link BleManager#BleManager()}.
  */
 public class BleManager implements AutoCloseable {
     static {
@@ -21,9 +19,7 @@ public class BleManager implements AutoCloseable {
     final MemorySegment ctxPtr;
     private final Arena sharedArena;
 
-    /**
-     * Constructs a new {@link BleManager} instance.
-     */
+    /** Constructs a new {@link BleManager} instance. */
     public BleManager() {
         this.sharedArena = Arena.ofShared();
         this.ctxPtr = BtleplugFfi.ble_ctx_new();
@@ -40,14 +36,23 @@ public class BleManager implements AutoCloseable {
     public List<Adapter> getAdapters() {
         List<Adapter> adapters = new ArrayList<>();
         try {
-            MethodHandle handle = MethodHandles.lookup().findVirtual(
-                    BleManager.class, "adapterCallback",
-                    MethodType.methodType(void.class, List.class, MemorySegment.class, MemorySegment.class, MemorySegment.class)
-            ).bindTo(this).bindTo(adapters);
+            MethodHandle handle =
+                    MethodHandles.lookup()
+                            .findVirtual(
+                                    BleManager.class,
+                                    "adapterCallback",
+                                    MethodType.methodType(
+                                            void.class,
+                                            List.class,
+                                            MemorySegment.class,
+                                            MemorySegment.class,
+                                            MemorySegment.class))
+                            .bindTo(this)
+                            .bindTo(adapters);
 
-            FunctionDescriptor desc = FunctionDescriptor.ofVoid(
-                    ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.ADDRESS
-            );
+            FunctionDescriptor desc =
+                    FunctionDescriptor.ofVoid(
+                            ValueLayout.ADDRESS, ValueLayout.ADDRESS, ValueLayout.ADDRESS);
 
             try (Arena tempArena = Arena.ofConfined()) {
                 MemorySegment stub = Linker.nativeLinker().upcallStub(handle, desc, tempArena);
@@ -60,13 +65,15 @@ public class BleManager implements AutoCloseable {
     }
 
     @SuppressWarnings("unused")
-    private void adapterCallback(List<Adapter> list, MemorySegment adapterPtr, MemorySegment namePtr, MemorySegment userData) {
+    private void adapterCallback(
+            List<Adapter> list,
+            MemorySegment adapterPtr,
+            MemorySegment namePtr,
+            MemorySegment userData) {
         list.add(new Adapter(this.ctxPtr, adapterPtr));
     }
 
-    /**
-     * Release the {@link BleManager}'s memory.
-     */
+    /** Release the {@link BleManager}'s memory. */
     @Override
     public void close() {
         BtleplugFfi.ble_ctx_free(ctxPtr);
