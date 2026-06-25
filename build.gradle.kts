@@ -310,6 +310,13 @@ spotless {
 		endWithNewline()
 	}
 
+	flexmark {
+		target("*.md")
+
+		flexmark()
+			.formatterOptions(mapOf("RIGHT_MARGIN" to "120"))
+	}
+
 	java {
 		googleJavaFormat().aosp().reflowLongStrings()
 		formatAnnotations()

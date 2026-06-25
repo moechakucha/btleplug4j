@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 moechakucha
+// SPDX-License-Identifier: MIT
 package moe.prwk.btleplug4j.test;
 
 import static org.junit.jupiter.api.Assertions.*;

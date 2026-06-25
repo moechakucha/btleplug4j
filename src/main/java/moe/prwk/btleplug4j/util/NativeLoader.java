@@ -1,3 +1,5 @@
+// SPDX-FileCopyrightText: © 2026 moechakucha
+// SPDX-License-Identifier: MIT
 package moe.prwk.btleplug4j.util;
 
 import java.io.InputStream;
