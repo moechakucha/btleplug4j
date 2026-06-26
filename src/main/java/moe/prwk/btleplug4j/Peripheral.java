@@ -293,10 +293,15 @@ public class Peripheral implements AutoCloseable {
         }
     }
 
-    /** Release the {@link Peripheral}'s memory. Also closes the connection if already connected. */
+    /**
+     * Release the {@link Peripheral}'s memory. Also unsubscribes any subscribed {@link Characteristic}s and
+     * closes the connection if already connected.
+     */
     @Override
     public void close() {
+        for (Characteristic c : subbedChars) unsubscribe(c);
         if (isConnected()) disconnect();
+
         sharedArena.close();
         BtleplugFfi.ble_peripheral_free(peripheralPtr);
     }
