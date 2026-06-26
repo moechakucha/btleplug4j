@@ -294,8 +294,8 @@ public class Peripheral implements AutoCloseable {
     }
 
     /**
-     * Release the {@link Peripheral}'s memory. Also unsubscribes any subscribed {@link Characteristic}s and
-     * closes the connection if already connected.
+     * Release the {@link Peripheral}'s memory. Also unsubscribes any subscribed {@link
+     * Characteristic}s and closes the connection if already connected.
      */
     @Override
     public void close() {
