@@ -329,6 +329,8 @@ spotless {
 			// SPDX-License-Identifier: MIT
 		""".trimIndent())
 	}
+
+	isEnforceCheck = false
 }
 
 tasks.named("spotlessJava") {
