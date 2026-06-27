@@ -3,10 +3,11 @@
 package moe.prwk.btleplug4j;
 
 import java.lang.foreign.*;
-import java.lang.invoke.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import moe.prwk.btleplug4j.ffi.BtleplugFfi;
+import moe.prwk.btleplug4j.util.CallbackRegistry;
 
 /**
  * The “client” of BLE. It’s able to scan for and establish connections to peripherals. Can be
@@ -15,6 +16,8 @@ import moe.prwk.btleplug4j.ffi.BtleplugFfi;
 public class Adapter implements AutoCloseable {
     private final MemorySegment ctxPtr;
     private final MemorySegment adapterPtr;
+
+    record PeripheralAccumulator(MemorySegment ctxPtr, List<Peripheral> list) {}
 
     /** Not supposed to be called externally in a direct manner. */
     Adapter(MemorySegment ctxPtr, MemorySegment adapterPtr) {
@@ -26,11 +29,14 @@ public class Adapter implements AutoCloseable {
      * Start a scan for BLE devices with no filter specified.
      *
      * <p>See {@link Adapter#startScan(List)} for more details.
-     *
-     * @return Whether the scan is successful
      */
-    public boolean startScan() {
-        return BtleplugFfi.ble_adapter_start_scan(ctxPtr, adapterPtr);
+    public CompletableFuture<Void> startScan() {
+        CompletableFuture<Void> future = new CompletableFuture<>();
+        long id = CallbackRegistry.register(future, CallbackRegistry.ExpectedReturnType.VOID);
+
+        BtleplugFfi.ble_adapter_start_scan(
+                ctxPtr, adapterPtr, Shared.SHARED_RESULT_STUB, MemorySegment.ofAddress(id));
+        return future;
     }
 
     /**
@@ -47,28 +53,34 @@ public class Adapter implements AutoCloseable {
      * fit into the filter.
      *
      * @param targetUuids The UUIDs to be filtered into the result
-     * @return Whether the scan is successful
      */
-    public boolean startScan(List<String> targetUuids) {
+    public CompletableFuture<Void> startScan(List<String> targetUuids) {
         int count = targetUuids.size();
         if (count == 0) {
             return startScan();
         }
 
-        try (Arena tempArena = Arena.ofConfined()) {
-            MemorySegment pointersArray = tempArena.allocate(ValueLayout.ADDRESS, count);
+        CompletableFuture<Void> future = new CompletableFuture<>();
+        Arena tempArena = Arena.ofShared();
+        MemorySegment pointersArray = tempArena.allocate(ValueLayout.ADDRESS, count);
 
-            for (int i = 0; i < count; i++) {
-                String uuid = targetUuids.get(i);
-
-                MemorySegment cString = tempArena.allocateFrom(uuid);
-
-                pointersArray.setAtIndex(ValueLayout.ADDRESS, i, cString);
-            }
-
-            return BtleplugFfi.ble_adapter_start_filtered_scan(
-                    ctxPtr, adapterPtr, pointersArray, count);
+        for (int i = 0; i < count; i++) {
+            pointersArray.setAtIndex(
+                    ValueLayout.ADDRESS, i, tempArena.allocateFrom(targetUuids.get(i)));
         }
+
+        long id =
+                CallbackRegistry.register(
+                        future, null, CallbackRegistry.ExpectedReturnType.VOID, tempArena);
+
+        BtleplugFfi.ble_adapter_start_filtered_scan(
+                ctxPtr,
+                adapterPtr,
+                Shared.SHARED_RESULT_STUB,
+                pointersArray,
+                count,
+                MemorySegment.ofAddress(id));
+        return future;
     }
 
     /**
@@ -78,58 +90,22 @@ public class Adapter implements AutoCloseable {
      *
      * @return The list of {@link Peripheral}s that have been discovered so far
      */
-    public List<Peripheral> getPeripherals() {
-        List<Peripheral> peripherals = new ArrayList<>();
-        try {
-            MethodHandle handle =
-                    MethodHandles.lookup()
-                            .findVirtual(
-                                    Adapter.class,
-                                    "peripheralCallback",
-                                    MethodType.methodType(
-                                            void.class,
-                                            List.class,
-                                            MemorySegment.class,
-                                            MemorySegment.class,
-                                            MemorySegment.class,
-                                            MemorySegment.class))
-                            .bindTo(this)
-                            .bindTo(peripherals);
+    public CompletableFuture<List<Peripheral>> getPeripherals() {
+        CompletableFuture<List<Peripheral>> future = new CompletableFuture<>();
+        long id =
+                CallbackRegistry.register(
+                        future,
+                        new PeripheralAccumulator(ctxPtr, new ArrayList<>()),
+                        CallbackRegistry.ExpectedReturnType.ATTACHMENT);
 
-            FunctionDescriptor desc =
-                    FunctionDescriptor.ofVoid(
-                            ValueLayout.ADDRESS,
-                            ValueLayout.ADDRESS,
-                            ValueLayout.ADDRESS,
-                            ValueLayout.ADDRESS);
+        BtleplugFfi.ble_adapter_poll_peripherals(
+                ctxPtr,
+                adapterPtr,
+                Shared.SHARED_PERIPHERAL_CB_STUB,
+                Shared.SHARED_RESULT_STUB,
+                MemorySegment.ofAddress(id));
 
-            try (Arena tempArena = Arena.ofConfined()) {
-                MemorySegment stub = Linker.nativeLinker().upcallStub(handle, desc, tempArena);
-                BtleplugFfi.ble_adapter_poll_peripherals(
-                        ctxPtr, adapterPtr, stub, MemorySegment.NULL);
-            }
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-        return peripherals;
-    }
-
-    @SuppressWarnings("unused")
-    private void peripheralCallback(
-            List<Peripheral> list,
-            MemorySegment peripheralPtr,
-            MemorySegment idPtr,
-            MemorySegment namePtr,
-            MemorySegment userData) {
-        String id =
-                idPtr.equals(MemorySegment.NULL)
-                        ? ""
-                        : idPtr.reinterpret(Long.MAX_VALUE).getString(0);
-        String name =
-                namePtr.equals(MemorySegment.NULL)
-                        ? "Unknown"
-                        : namePtr.reinterpret(Long.MAX_VALUE).getString(0);
-        list.add(new Peripheral(ctxPtr, peripheralPtr, id, name));
+        return future;
     }
 
     /** Release the {@link Adapter}'s memory. */
