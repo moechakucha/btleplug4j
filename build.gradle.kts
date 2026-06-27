@@ -330,3 +330,7 @@ spotless {
 		""".trimIndent())
 	}
 }
+
+tasks.named("spotlessJava") {
+	dependsOn("generateBindings")
+}

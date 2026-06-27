@@ -9,7 +9,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.BiConsumer;
+import java.util.concurrent.Flow;
 import moe.prwk.btleplug4j.ffi.BtleplugFfi;
 import moe.prwk.btleplug4j.util.CallbackRegistry;
 import moe.prwk.btleplug4j.util.StreamRegistry;
@@ -235,21 +235,39 @@ public class Peripheral implements AutoCloseable {
         return future.thenRun(() -> subbedChars.remove(characteristic));
     }
 
-    public CompletableFuture<NotificationSubscription> notifications(
-            BiConsumer<String, byte[]> listener) {
-        CompletableFuture<NotificationSubscription> handshakeFuture = new CompletableFuture<>();
-        long id = StreamRegistry.register(listener, handshakeFuture);
+    /**
+     * Returns a stream of notifications for characteristic value updates. The stream will receive a
+     * notification when a value notification or indication is received from the device. The stream
+     * will remain valid across connections and can be queried before any connection is made.
+     *
+     * @return A stream of {@link ValueNotification}s
+     */
+    public Flow.Publisher<ValueNotification> notifications() {
+        return subscriber -> {
+            CompletableFuture<Void> handshakeFuture = new CompletableFuture<>();
 
-        MemorySegment taskHandle =
-                BtleplugFfi.ble_peripheral_notifications(
-                        ctxPtr,
-                        peripheralPtr,
-                        Shared.SHARED_NOTIFY_STUB,
-                        Shared.SHARED_STREAM_RESULT_STUB,
-                        MemorySegment.ofAddress(id));
-        StreamRegistry.setTaskHandle(id, taskHandle);
+            ValueNotification.Subscription sub =
+                    new ValueNotification.Subscription(
+                            subscriber, StreamRegistry.STREAM_ID_GENERATOR.get());
+            long id = StreamRegistry.register(sub, handshakeFuture);
 
-        return handshakeFuture;
+            MemorySegment taskHandle =
+                    BtleplugFfi.ble_peripheral_notifications(
+                            ctxPtr,
+                            peripheralPtr,
+                            Shared.SHARED_NOTIFY_STUB,
+                            Shared.SHARED_STREAM_RESULT_STUB,
+                            MemorySegment.ofAddress(id));
+
+            sub.setTaskHandle(taskHandle);
+            subscriber.onSubscribe(sub);
+
+            handshakeFuture.exceptionally(
+                    ex -> {
+                        sub.onError(ex);
+                        return null;
+                    });
+        };
     }
 
     /**
@@ -277,7 +295,6 @@ public class Peripheral implements AutoCloseable {
      *
      * @param descriptor the {@link Descriptor} to write data to
      * @param data the data to be written
-     * @return Whether the write is successful
      */
     public CompletableFuture<Void> writeDescriptor(@NonNull Descriptor descriptor, byte[] data) {
         CompletableFuture<Void> future = new CompletableFuture<>();
@@ -302,7 +319,7 @@ public class Peripheral implements AutoCloseable {
     @Override
     public void close() {
         for (Characteristic c : new HashSet<>(subbedChars)) {
-            unsubscribe(c);
+            unsubscribe(c).join();
         }
         if (isConnected().join()) {
             disconnect().join();

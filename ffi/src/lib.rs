@@ -526,7 +526,7 @@ pub extern "C" fn ble_peripheral_write(
 pub extern "C" fn ble_peripheral_notifications(
     ctx: *mut BleContext,
     peripheral: *mut BlePeripheralHandle,
-    callback: extern "C" fn(*const c_char, *const u8, usize, *mut c_void),
+    callback: extern "C" fn(*const c_char, *const c_char, *const u8, usize, *mut c_void),
     result_cb: ResultCallback,
     user_data: *mut c_void,
 ) -> *mut TaskHandle {
@@ -547,10 +547,14 @@ pub extern "C" fn ble_peripheral_notifications(
                 use futures::stream::StreamExt;
 
                 while let Some(notification) = notifications.next().await {
+                    let service_uuid_str = notification.service_uuid.to_string();
+                    let c_service_uuid = CString::new(service_uuid_str).unwrap();
+
                     let uuid_str = notification.uuid.to_string();
                     let c_uuid = CString::new(uuid_str).unwrap_or_default();
 
                     callback(
+                        c_service_uuid.as_ptr(),
                         c_uuid.as_ptr(),
                         notification.value.as_ptr(),
                         notification.value.len(),

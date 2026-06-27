@@ -32,6 +32,21 @@ public class CallbackRegistry {
     static {
         CLEANUP_SCHEDULER.scheduleAtFixedRate(
                 CallbackRegistry::cleanupStaleEntries, 5, 5, TimeUnit.SECONDS);
+
+        Runtime.getRuntime()
+                .addShutdownHook(
+                        new Thread(
+                                () -> {
+                                    CLEANUP_SCHEDULER.shutdown();
+                                    try {
+                                        if (!CLEANUP_SCHEDULER.awaitTermination(
+                                                5, TimeUnit.SECONDS)) {
+                                            CLEANUP_SCHEDULER.shutdownNow();
+                                        }
+                                    } catch (InterruptedException e) {
+                                        CLEANUP_SCHEDULER.shutdownNow();
+                                    }
+                                }));
     }
 
     public static class RegistryEntry<T> {
@@ -107,9 +122,5 @@ public class CallbackRegistry {
                         }
                     }
                 });
-    }
-
-    public static void shutdown() {
-        CLEANUP_SCHEDULER.shutdownNow();
     }
 }
