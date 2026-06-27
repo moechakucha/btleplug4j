@@ -319,6 +319,8 @@ spotless {
 	}
 
 	java {
+		targetExclude("$jextractOutputDir/**/*.java")
+
 		googleJavaFormat().aosp().reflowLongStrings()
 		formatAnnotations()
 
