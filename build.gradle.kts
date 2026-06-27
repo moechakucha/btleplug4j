@@ -204,7 +204,7 @@ tasks.register<Exec>("generateBindings") {
 			val trimmed = line.trim()
 			if (trimmed.startsWith("--include-function ble_") ||
 				trimmed.startsWith("--include-struct Ble") ||
-				trimmed.startsWith("--include-typedef NotifyCallback")) {
+				trimmed.startsWith("--include-typedef ResultCallback")) {
 
 				val parts = trimmed.split(" ", limit = 2)
 				if (parts.size == 2) {
