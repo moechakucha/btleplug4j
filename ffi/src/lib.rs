@@ -90,8 +90,8 @@ pub extern "C" fn ble_ctx_get_adapters(
                     let handle_ptr = Box::into_raw(Box::new(BleAdapterHandle(adapter))) as usize;
                     let name = CString::new(name).unwrap();
                     callback(handle_ptr as _, name.as_ptr(), ud_addr as _);
-                    result_cb(true, null(), 0, null(), ud_addr as _);
                 }
+                result_cb(true, null(), 0, null(), ud_addr as _);
             }
             Err(err) => {
                 let err_msg = CString::new(err.to_string()).unwrap();

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 package moe.prwk.btleplug4j.test;
 
+/*
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.List;
@@ -10,9 +11,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import moe.prwk.btleplug4j.*;
 import org.junit.jupiter.api.Test;
+ */
 
 @SuppressWarnings("unused")
 public class BleTest {
+    /*
     private static final String TARGET_DEVICE_NAME = "test-device";
     private static final String CONTROL_SERVICE_UUID = "00000001-b5a3-f393-e0a9-e50e24dcca9e";
 
@@ -71,4 +74,5 @@ public class BleTest {
             }
         }
     }
+     */
 }

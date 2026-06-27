@@ -321,5 +321,10 @@ spotless {
 	java {
 		googleJavaFormat().aosp().reflowLongStrings()
 		formatAnnotations()
+
+		licenseHeader("""
+			// SPDX-FileCopyrightText: © 2026 moechakucha
+			// SPDX-License-Identifier: MIT
+		""".trimIndent())
 	}
 }
