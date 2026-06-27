@@ -24,6 +24,8 @@ pub struct BleServiceHandle(pub Service);
 pub struct BleCharacteristicHandle(pub Characteristic);
 pub struct BleDescriptorHandle(pub Descriptor);
 
+pub struct TaskHandle(pub JoinHandle<()>);
+
 pub type ResultCallback = extern "C" fn(
     success: bool,
     data: *const u8,
@@ -527,7 +529,7 @@ pub extern "C" fn ble_peripheral_notifications(
     callback: extern "C" fn(*const c_char, *const u8, usize, *mut c_void),
     result_cb: ResultCallback,
     user_data: *mut c_void,
-) -> *mut JoinHandle<()> {
+) -> *mut TaskHandle {
     let (ctx, peripheral) = unsafe {
         if !ctx.is_null() && !peripheral.is_null() {
             (&mut *ctx.clone(), &mut *peripheral.clone())
@@ -563,15 +565,15 @@ pub extern "C" fn ble_peripheral_notifications(
         }
     });
 
-    Box::into_raw(Box::new(handle))
+    Box::into_raw(Box::new(TaskHandle(handle)))
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn ble_peripheral_abort_notifications(handle: *mut JoinHandle<()>) {
+pub extern "C" fn ble_peripheral_abort_notifications(handle: *mut TaskHandle) {
     unsafe {
         if !handle.is_null() {
             let handle = Box::from_raw(handle);
-            handle.abort();
+            handle.0.abort();
         }
     }
 }
