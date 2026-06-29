@@ -217,7 +217,7 @@ final class Shared {
                         MemorySegment ctxPtr,
                         java.util.List<Peripheral> list)) {
             String devId = idPtr.address() == 0 ? "" : idPtr.getString(0);
-            String devName = namePtr.address() == 0 ? "Unknown" : namePtr.getString(0);
+            String devName = namePtr.address() == 0 ? "" : namePtr.getString(0);
             list.add(new Peripheral(ctxPtr, peripheralHandle, devId, devName));
         }
     }
