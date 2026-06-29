@@ -248,7 +248,7 @@ public class Peripheral implements AutoCloseable {
 
             ValueNotification.Subscription sub =
                     new ValueNotification.Subscription(
-                            subscriber, StreamRegistry.STREAM_ID_GENERATOR.get());
+                            subscriber, StreamRegistry.getCurrentId());
             long id = StreamRegistry.register(sub, handshakeFuture);
 
             MemorySegment taskHandle =

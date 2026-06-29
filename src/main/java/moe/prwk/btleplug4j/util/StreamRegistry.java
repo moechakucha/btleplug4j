@@ -8,7 +8,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import moe.prwk.btleplug4j.ValueNotification;
 
 public class StreamRegistry {
-    public static final AtomicLong STREAM_ID_GENERATOR = new AtomicLong(1);
+    private static final AtomicLong STREAM_ID_GENERATOR = new AtomicLong(1);
     private static final ConcurrentHashMap<Long, StreamContext> REGISTRY =
             new ConcurrentHashMap<>(256);
 
@@ -20,6 +20,10 @@ public class StreamRegistry {
         long id = STREAM_ID_GENERATOR.getAndIncrement();
         REGISTRY.put(id, new StreamContext(subscription, handshakeFuture));
         return id;
+    }
+
+    public static long getCurrentId() {
+        return STREAM_ID_GENERATOR.get();
     }
 
     public static StreamContext getContext(long id) {
