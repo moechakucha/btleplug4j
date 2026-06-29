@@ -5,7 +5,9 @@ package moe.prwk.btleplug4j;
 import java.lang.foreign.*;
 import java.lang.invoke.*;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 import moe.prwk.btleplug4j.ffi.BtleplugFfi;
 
 /**
@@ -21,13 +23,35 @@ import moe.prwk.btleplug4j.ffi.BtleplugFfi;
 public class Characteristic implements AutoCloseable {
     final MemorySegment charPtr;
     public final String uuid;
-    public final byte properties;
+    private final Set<Property> properties;
 
     /** Not supposed to be called externally in a direct manner. */
-    Characteristic(MemorySegment charPtr, String uuid, byte properties) {
+    Characteristic(MemorySegment charPtr, String uuid, byte rawProps) {
         this.charPtr = charPtr;
         this.uuid = uuid;
-        this.properties = properties;
+        this.properties = Property.parse(rawProps);
+    }
+
+    /**
+     * Get the set of properties for this characteristic, which indicate what functionality it
+     * supports. If you attempt an operation that is not supported by the characteristics (for
+     * example setting notify on one without the {@link Property#NOTIFY} flag), that operation will
+     * fail.
+     *
+     * @return The set of properties for this characteristic
+     */
+    public Set<Property> properties() {
+        return properties;
+    }
+
+    /**
+     * Check whether the characteristic has the specified property.
+     *
+     * @param property the property expected
+     * @return Whether this characteristic has this property
+     */
+    public boolean hasProperty(Property property) {
+        return properties.contains(property);
     }
 
     /**
@@ -83,5 +107,37 @@ public class Characteristic implements AutoCloseable {
     @Override
     public void close() {
         BtleplugFfi.ble_characteristic_free(charPtr);
+    }
+
+    /** Properties that indicate what operations are supported by a {@link Characteristic}. */
+    public enum Property {
+        BROADCAST(0x01),
+        READ(0x02),
+        WRITE_WITHOUT_RESPONSE(0x04),
+        WRITE(0x08),
+        NOTIFY(0x10),
+        INDICATE(0x20),
+        AUTHENTICATED_SIGNED_WRITES(0x40),
+        EXTENDED_PROPERTIES(0x80);
+
+        private final int mask;
+
+        Property(int mask) {
+            this.mask = mask;
+        }
+
+        public int mask() {
+            return mask;
+        }
+
+        public static Set<Property> parse(int propertiesMask) {
+            Set<Property> props = EnumSet.noneOf(Property.class);
+            for (Property prop : values()) {
+                if ((propertiesMask & prop.mask) != 0) {
+                    props.add(prop);
+                }
+            }
+            return props;
+        }
     }
 }
