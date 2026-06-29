@@ -100,8 +100,7 @@ class NotificationQueue
     }
 
     @Override
-    public boolean offer(ValueNotification valueNotification, long timeout, @NonNull TimeUnit unit)
-            throws InterruptedException {
+    public boolean offer(ValueNotification valueNotification, long timeout, @NonNull TimeUnit unit) {
         throw new UnsupportedOperationException();
     }
 
@@ -156,7 +155,7 @@ class NotificationQueue
     }
 
     @Override
-    public boolean removeAll(Collection<?> c) {
+    public boolean removeAll(@NonNull Collection<?> c) {
         throw new UnsupportedOperationException();
     }
 
