@@ -386,7 +386,13 @@ pub extern "C" fn ble_service_free(service_handle: *mut BleServiceHandle) {
 #[unsafe(no_mangle)]
 pub extern "C" fn ble_service_get_characteristics(
     service: *mut BleServiceHandle,
-    callback: extern "C" fn(*mut BleCharacteristicHandle, *const c_char, u8, *mut c_void),
+    callback: extern "C" fn(
+        *mut BleCharacteristicHandle,
+        *const c_char,
+        *const c_char,
+        u8,
+        *mut c_void,
+    ),
     user_data: *mut c_void,
 ) {
     let service = unsafe {
@@ -398,11 +404,18 @@ pub extern "C" fn ble_service_get_characteristics(
     };
 
     for c in &service.0.characteristics {
+        let service_uuid_str = CString::new(service.0.uuid.to_string()).unwrap();
         let uuid_str = CString::new(c.uuid.to_string()).unwrap();
         let props_bits = c.properties.bits();
 
         let handle_ptr = Box::into_raw(Box::new(BleCharacteristicHandle(c.clone())));
-        callback(handle_ptr, uuid_str.as_ptr(), props_bits, user_data);
+        callback(
+            handle_ptr,
+            service_uuid_str.as_ptr(),
+            uuid_str.as_ptr(),
+            props_bits,
+            user_data,
+        );
     }
 }
 

@@ -42,6 +42,7 @@ public class Service implements AutoCloseable {
                                             List.class,
                                             MemorySegment.class,
                                             MemorySegment.class,
+                                            MemorySegment.class,
                                             byte.class,
                                             MemorySegment.class))
                             .bindTo(this)
@@ -49,6 +50,7 @@ public class Service implements AutoCloseable {
 
             FunctionDescriptor desc =
                     FunctionDescriptor.ofVoid(
+                            ValueLayout.ADDRESS,
                             ValueLayout.ADDRESS,
                             ValueLayout.ADDRESS,
                             ValueLayout.JAVA_BYTE,
@@ -68,14 +70,19 @@ public class Service implements AutoCloseable {
     private void charCallback(
             List<Characteristic> list,
             MemorySegment charPtr,
+            MemorySegment serviceUuidPtr,
             MemorySegment uuidPtr,
             byte props,
             MemorySegment userData) {
+        String serviceUuid =
+                serviceUuidPtr.equals(MemorySegment.NULL)
+                        ? ""
+                        : serviceUuidPtr.reinterpret(Long.MAX_VALUE).getString(0);
         String uuid =
                 uuidPtr.equals(MemorySegment.NULL)
                         ? ""
                         : uuidPtr.reinterpret(Long.MAX_VALUE).getString(0);
-        list.add(new Characteristic(charPtr, uuid, props));
+        list.add(new Characteristic(charPtr, serviceUuid, uuid, props));
     }
 
     /** Release the {@link Service}'s memory. */

@@ -22,12 +22,14 @@ import moe.prwk.btleplug4j.ffi.BtleplugFfi;
  */
 public class Characteristic implements AutoCloseable {
     final MemorySegment charPtr;
+    public final String serviceUuid;
     public final String uuid;
     private final Set<Property> properties;
 
     /** Not supposed to be called externally in a direct manner. */
-    Characteristic(MemorySegment charPtr, String uuid, byte rawProps) {
+    Characteristic(MemorySegment charPtr, String serviceUuid, String uuid, byte rawProps) {
         this.charPtr = charPtr;
+        this.serviceUuid = serviceUuid;
         this.uuid = uuid;
         this.properties = Property.parse(rawProps);
     }
