@@ -27,22 +27,6 @@ public class Peripheral implements AutoCloseable {
     public final String id;
     public final String name;
 
-    public static class NotificationSubscription implements AutoCloseable {
-        private final MemorySegment taskHandle;
-        private final long streamId;
-
-        NotificationSubscription(MemorySegment taskHandle, long streamId) {
-            this.taskHandle = taskHandle;
-            this.streamId = streamId;
-        }
-
-        @Override
-        public void close() {
-            BtleplugFfi.ble_peripheral_abort_notifications(taskHandle);
-            StreamRegistry.remove(streamId);
-        }
-    }
-
     /** Not supposed to be called externally in a direct manner. */
     Peripheral(MemorySegment ctxPtr, MemorySegment peripheralPtr, String id, String name) {
         this.ctxPtr = ctxPtr;
