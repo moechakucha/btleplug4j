@@ -35,6 +35,7 @@ jobs:
 
       - name: Install Dependencies
         run: |
+          export PATH="$PATH:/home/runner/work/_actions/Timmmm/setup-osxcross/v2/osxcross/target/bin"
           sudo apt-get update
           sudo apt-get install -y bluez libdbus-1-dev gcc-mingw-w64-x86-64-win32
           cargo install --locked cargo-xwin cargo-zigbuild
