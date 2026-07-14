@@ -20,10 +20,10 @@ jobs:
           java-version: '22'
           distribution: 'temurin'
 
-      - name: Setup Rust
+      - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Setup Zig
+      - name: Set up Zig
         uses: goto-bus-stop/setup-zig@v2
         with:
           version: '0.16.0'
