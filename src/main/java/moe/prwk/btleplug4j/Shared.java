@@ -216,8 +216,10 @@ final class Shared {
                 Adapter.PeripheralAccumulator(
                         MemorySegment ctxPtr,
                         java.util.List<Peripheral> list)) {
-            String devId = idPtr.address() == 0 ? "" : idPtr.getString(0);
-            String devName = namePtr.address() == 0 ? "" : namePtr.getString(0);
+            String devId =
+                    idPtr.address() == 0 ? "" : idPtr.reinterpret(Long.MAX_VALUE).getString(0);
+            String devName =
+                    namePtr.address() == 0 ? "" : namePtr.reinterpret(Long.MAX_VALUE).getString(0);
             list.add(new Peripheral(ctxPtr, peripheralHandle, devId, devName));
         }
     }
@@ -232,8 +234,12 @@ final class Shared {
         long id = userData.address();
         StreamRegistry.StreamContext ctx = StreamRegistry.getContext(id);
         if (ctx != null && ctx.subscription() != null) {
-            String serviceUuid = serviceUuidPtr.address() == 0 ? "" : serviceUuidPtr.getString(0);
-            String uuid = uuidPtr.address() == 0 ? "" : uuidPtr.getString(0);
+            String serviceUuid =
+                    serviceUuidPtr.address() == 0
+                            ? ""
+                            : serviceUuidPtr.reinterpret(Long.MAX_VALUE).getString(0);
+            String uuid =
+                    uuidPtr.address() == 0 ? "" : uuidPtr.reinterpret(Long.MAX_VALUE).getString(0);
             byte[] data =
                     dataPtr.address() == 0
                             ? new byte[0]
