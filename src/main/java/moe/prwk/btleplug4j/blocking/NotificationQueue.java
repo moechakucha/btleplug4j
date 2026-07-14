@@ -100,7 +100,8 @@ class NotificationQueue
     }
 
     @Override
-    public boolean offer(ValueNotification valueNotification, long timeout, @NonNull TimeUnit unit) {
+    public boolean offer(
+            ValueNotification valueNotification, long timeout, @NonNull TimeUnit unit) {
         throw new UnsupportedOperationException();
     }
 
