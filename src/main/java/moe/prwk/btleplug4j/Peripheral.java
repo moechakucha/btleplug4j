@@ -24,8 +24,8 @@ public class Peripheral implements AutoCloseable {
     private final MemorySegment ctxPtr;
     private final MemorySegment peripheralPtr;
     private final Set<Characteristic> subbedChars;
-    public final String id;
-    public final String name;
+    private final String id;
+    private final String name;
 
     /** Not supposed to be called externally in a direct manner. */
     Peripheral(MemorySegment ctxPtr, MemorySegment peripheralPtr, String id, String name) {
@@ -34,6 +34,14 @@ public class Peripheral implements AutoCloseable {
         this.subbedChars = new HashSet<>();
         this.id = id;
         this.name = name;
+    }
+
+    public String uuid() {
+        return id;
+    }
+
+    public String name() {
+        return name;
     }
 
     /**

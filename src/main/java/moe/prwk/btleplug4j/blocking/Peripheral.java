@@ -23,6 +23,14 @@ public class Peripheral implements AutoCloseable {
         this.inner = inner;
     }
 
+    public String uuid() {
+        return inner.uuid();
+    }
+
+    public String name() {
+        return inner.name();
+    }
+
     /**
      * Returns {@code true} iff we are currently connected to the device.
      *
