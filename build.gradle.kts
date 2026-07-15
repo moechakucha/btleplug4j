@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "moe.prwk"
-version = "0.1.1"
+version = "0.1.2"
 base.archivesName = "btleplug4j"
 
 repositories {
