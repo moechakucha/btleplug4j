@@ -339,6 +339,8 @@ tasks.named("spotlessJava") {
 	dependsOn("generateBindings")
 }
 
+tasks.findByPath("generateMetadataFileForMavenPublication")?.dependsOn("plainJavadocJar")
+
 mavenPublishing {
 	publishToMavenCentral(automaticRelease = true)
 	signAllPublications()
