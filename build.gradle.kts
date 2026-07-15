@@ -1,13 +1,15 @@
-import java.io.File
 import org.gradle.internal.os.OperatingSystem
 
 plugins {
 	id("java")
+	id("maven-publish")
 	id("com.diffplug.spotless") version "8.7.0"
+	id("com.vanniktech.maven.publish") version "0.37.0"
 }
 
 group = "moe.prwk"
 version = "0.1.0"
+base.archivesName = "btleplug4j"
 
 repositories {
 	mavenCentral()
@@ -335,4 +337,35 @@ spotless {
 
 tasks.named("spotlessJava") {
 	dependsOn("generateBindings")
+}
+
+mavenPublishing {
+	publishToMavenCentral(automaticRelease = true)
+	signAllPublications()
+
+	pom {
+		name.set("btleplug4j")
+		description.set("Java bindings for the Rust library btleplug")
+		inceptionYear.set("2026")
+		url.set("https://git.sr.ht/~flamarine/btleplug4j")
+		licenses {
+			license {
+				name.set("The MIT License")
+				url.set("https://opensource.org/license/mit")
+				distribution.set("https://opensource.org/license/mit")
+			}
+		}
+		developers {
+			developer {
+				id.set("moechakucha")
+				name.set("moechakucha")
+				url.set("https://git.sr.ht/~flamarine")
+			}
+		}
+		scm {
+			url.set("https://git.sr.ht/~flamarine/btleplug4j")
+			connection.set("scm:git:git://git.sr.ht/~flamarine/btleplug4j.git")
+			developerConnection.set("scm:git:ssh://git@git.sr.ht/~flamarine/btleplug4j.git")
+		}
+	}
 }

@@ -8,4 +8,4 @@ tasks:
       cd ~/btleplug4j
       ssh-keyscan -t rsa github.com >> ~/.ssh/known_hosts
       git remote add github git@github.com:moechakucha/btleplug4j.git
-      git push --mirror github
+      git push --prune github '+refs/heads/*:refs/heads/*' '+refs/tags/*:refs/tags/*'
