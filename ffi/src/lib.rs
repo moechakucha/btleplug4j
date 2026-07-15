@@ -219,9 +219,10 @@ pub extern "C" fn ble_adapter_poll_peripherals(
 
                         let handle_ptr = Box::into_raw(Box::new(BlePeripheralHandle(peripheral)));
                         callback(handle_ptr, id.as_ptr(), name.as_ptr(), ud_addr as _);
-                        result_cb(true, null(), 0, null(), ud_addr as _);
                     }
                 }
+
+                result_cb(true, null(), 0, null(), ud_addr as _);
             }
             Err(err) => {
                 let err_msg = CString::new(err.to_string()).unwrap();
