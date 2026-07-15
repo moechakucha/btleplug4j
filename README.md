@@ -6,11 +6,11 @@ Java bindings for the Rust library [`btleplug`](https://github.com/deviceplug/bt
 
 To build the project you'll need:
 
-- JDK 22 and upwards (for the FFM API)
+- JDK 22 and onwards (for the FFM API)
 - `jextract` matching the JDK version
 - Rust
-- Zig (for cross-compilation for Linux and macOS)
-- MinGW (for cross-compilation for Windows)
+- Zig (for cross-compilation targeting Linux and macOS)
+- MinGW (for cross-compilation targeting Windows)
 - `cargo-zigbuild` and `cargo-xwin`
 - `libdbus` development files and `bluez` when on Linux
 - macOS SDK (for cross-compilation targeting macOS)
