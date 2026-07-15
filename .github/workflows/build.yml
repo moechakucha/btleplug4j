@@ -64,7 +64,7 @@ jobs:
           SDKROOT: ${{ github.workspace }}/.macos_sdk
 
       - name: Publish to Maven Central
-        if: github.event_name == 'release' && github.event.action == 'created'
+        if: startsWith(github.ref, 'refs/tags/')
         run: ./gradlew publishAllPublicationsToMavenCentralRepository -Pci=true -x test --no-daemon
         env:
           SDKROOT: ${{ github.workspace }}/.macos_sdk
