@@ -87,8 +87,8 @@ java {
 	sourceCompatibility = JavaVersion.VERSION_22
 	targetCompatibility = JavaVersion.VERSION_22
 
-//	withSourcesJar()
-//	withJavadocJar()
+	withSourcesJar()
+	// withJavadocJar()
 }
 
 tasks.register("syncRustVersion") {
@@ -290,10 +290,10 @@ tasks.named("jar") {
 	dependsOn("buildAllPlatformsNatives")
 }
 
-//tasks.named("sourcesJar") {
-//	dependsOn("buildAllPlatformsNatives")
-//}
-//
+tasks.named("sourcesJar") {
+	dependsOn("buildAllPlatformsNatives")
+}
+
 //tasks.named("javadocJar") {
 //	dependsOn("buildAllPlatformsNatives")
 //}
@@ -339,7 +339,7 @@ tasks.named("spotlessJava") {
 	dependsOn("generateBindings")
 }
 
-tasks.findByPath("generateMetadataFileForMavenPublication")?.dependsOn("plainJavadocJar")
+// tasks.findByPath("generateMetadataFileForMavenPublication")?.dependsOn("plainJavadocJar")
 
 mavenPublishing {
 	publishToMavenCentral(automaticRelease = true)
