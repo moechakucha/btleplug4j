@@ -36,3 +36,11 @@ simply run:
 ./gradlew build
 ```
 
+## Licensing
+
+This project is licensed under [MIT](https://opensource.org/license/mit).
+
+Additionally, this project uses `btleplug`, which is licensed under
+[BSD 3-Clause](https://opensource.org/license/bsd-3-clause).
+
+Please view the [license](LICENSE.md) for more info.
