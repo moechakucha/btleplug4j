@@ -41,10 +41,9 @@ jobs:
           curl -L "https://github.com/joseluisq/macosx-sdks/releases/download/26.1/MacOSX26.1.sdk.tar.xz" | tar -xJ -C .macos_sdk --strip-components=1
 
       - name: Install system dependencies
-        uses: awalsh128/cache-apt-pkgs-action@v1
-        with:
-          packages: bluez libdbus-1-dev gcc-mingw-w64-x86-64-win32
-          version: 1.0
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bluez libdbus-1-dev gcc-mingw-w64-x86-64-win32
 
       - name: Install cargo dependencies
         uses: taiki-e/install-action@v2
