@@ -41,5 +41,4 @@ bin/
 .DS_Store
 
 ffi/target
-ffi/target-test
 ffi/bindings.h
