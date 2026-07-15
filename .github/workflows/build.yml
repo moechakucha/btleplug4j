@@ -3,8 +3,8 @@ name: Build and Publish
 on:
   push:
     branches: [ "trunk" ]
-  release:
-    types: [created]
+    tags:
+      - '*'
 
 jobs:
   build:
