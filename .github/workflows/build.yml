@@ -22,8 +22,13 @@ jobs:
 
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@1.96.0
-        with:
-          targets: x86_64-unknown-linux-gnu,aarch64-apple-darwin,x86_64-apple-darwin,x86_64-pc-windows-gnu
+
+      - name: Set up Rust targets
+        run: |
+          rustup target add x86_64-unknown-linux-gnu
+          rustup target add aarch64-apple-darwin
+          rustup target add x86_64-apple-darwin
+          rustup target add x86_64-pc-windows-gnu
 
       - name: Set up Zig
         uses: goto-bus-stop/setup-zig@v2
