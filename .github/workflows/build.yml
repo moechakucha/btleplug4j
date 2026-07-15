@@ -65,7 +65,7 @@ jobs:
 
       - name: Publish to Maven Central
         if: github.event_name == 'release' && github.event.action == 'created'
-        run: ./gradlew publishAllPublicationsToMavenCentralRepository --no-daemon
+        run: ./gradlew publishAllPublicationsToMavenCentralRepository -Pci=true -x test --no-daemon
         env:
           SDKROOT: ${{ github.workspace }}/.macos_sdk
           ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
