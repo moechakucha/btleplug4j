@@ -21,28 +21,30 @@ jobs:
           distribution: 'temurin'
 
       - name: Set up Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          targets: x86_64-unknown-linux-gnu,aarch64-apple-darwin,x86_64-apple-darwin,x86_64-pc-windows-gnu
 
       - name: Set up Zig
         uses: goto-bus-stop/setup-zig@v2
         with:
           version: '0.16.0'
 
-      - name: Set up macOS Cross Compiler
-        uses: Timmmm/setup-osxcross@v2
-        with:
-          osx-version: "26.1"
-
-      - name: Install Dependencies
+      - name: Download and set up macOS 26.1 SDK
         run: |
-          export PATH="$PATH:/home/runner/work/_actions/Timmmm/setup-osxcross/v2/osxcross/target/bin"
-          sudo apt-get update
-          sudo apt-get install -y bluez libdbus-1-dev gcc-mingw-w64-x86-64-win32
-          cargo install --locked cargo-xwin cargo-zigbuild
-          rustup target add x86_64-unknown-linux-gnu
-          rustup target add aarch64-apple-darwin
-          rustup target add x86_64-apple-darwin
-          rustup target add x86_64-pc-windows-gnu
+          mkdir -p .macos_sdk
+          curl -L "https://github.com/joseluisq/macosx-sdks/releases/download/26.1/MacOSX26.1.sdk.tar.xz" | tar -xJ -C .macos_sdk --strip-components=1
+
+      - name: Install system dependencies
+        uses: awalsh128/cache-apt-pkgs-action@v1
+        with:
+          packages: bluez libdbus-1-dev gcc-mingw-w64-x86-64-win32
+          version: 1.0
+
+      - name: Install cargo dependencies
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-xwin,cargo-zigbuild
 
       - name: Install jextract
         shell: bash
@@ -52,10 +54,12 @@ jobs:
           tar -xzf jextract_bundle.tar.gz -C $HOME/.jextract --strip-components=1
           echo "$HOME/.jextract/bin" >> $GITHUB_PATH
 
-      - name: Run Build
+      - name: Run build
         run: ./gradlew build -Pci=true -x test --no-daemon
+        env:
+          SDKROOT: ${{ github.workspace }}/.macos_sdk
 
-      - name: Upload Jar Artifact
+      - name: Upload jar artifact
         uses: actions/upload-artifact@v4
         with:
           name: btleplug4j
