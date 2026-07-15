@@ -17,7 +17,7 @@ import org.jspecify.annotations.Nullable;
  * <p>See {@link moe.prwk.btleplug4j.Peripheral} for more info.
  */
 public class Peripheral implements AutoCloseable {
-    private moe.prwk.btleplug4j.Peripheral inner;
+    private final moe.prwk.btleplug4j.Peripheral inner;
 
     Peripheral(moe.prwk.btleplug4j.Peripheral inner) {
         this.inner = inner;
