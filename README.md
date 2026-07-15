@@ -1,6 +1,18 @@
 # btleplug4j
 
+![Maven Central Version](https://img.shields.io/maven-central/v/moe.prwk/btleplug4j?label=Maven%20Central)
+
 Java bindings for the Rust library [`btleplug`](https://github.com/deviceplug/btleplug).
+
+```kotlin
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation("moe.prwk:btleplug4j:<version>")
+}
+```
 
 ## Build
 
